@@ -1,8 +1,9 @@
 """Advent of Code 2018. http://adventofcode.com/2018 """
 import re
 import sys
+import datetime
 from itertools import cycle
-from collections import Counter
+from collections import Counter, defaultdict
 import numpy as np
 
 
@@ -55,6 +56,35 @@ def day3b(s):
 		id, x, y, width, height = map(int, re.findall(r'\d+', line))
 		if (fabric[x:x + width, y:y + height] == 1).all().all():
 			return id
+
+
+def day4(s):
+	events = []
+	for line in s.splitlines():
+		date, event = line.lstrip('[').split('] ')
+		date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M')
+		events.append((date, event))
+	naps = defaultdict(lambda: np.zeros(60, dtype=int))
+	for date, event in sorted(events):
+		if 'Guard' in event:
+			guard = int(event.split()[1][1:])
+		elif 'asleep' in event:
+			start = date
+		elif 'wakes' in event:
+			naps[guard][start.minute:date.minute] += 1
+	return naps
+
+
+def day4a(s):
+	naps = day4(s)
+	guard = max(naps, key=lambda x: naps[x].sum())
+	return guard * naps[guard].argmax()
+
+
+def day4b(s):
+	naps = day4(s)
+	guard = max(naps, key=lambda x: naps[x].max())
+	return guard * naps[guard].argmax()
 
 
 def benchmark():
