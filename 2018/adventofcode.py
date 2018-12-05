@@ -87,20 +87,24 @@ def day4b(s):
 	return guard * naps[guard].argmax()
 
 
+def day5(s):
+	result = bytearray()
+	for a in s:
+		if result and a ^ 32 == result[-1]:
+			result.pop()
+		else:
+			result.append(a)
+	return result
+
+
 def day5a(s):
-	s = bytearray(s, 'ascii')
-	length = -1
-	while len(s) != length:
-		length = len(s)
-		for n in range(len(s) - 1, 0, -1):
-			if n < len(s) and s[n] ^ 32 == s[n - 1]:
-				s[n - 1:n + 1] = []
-	return len(s)
+	return len(day5(bytearray(s, 'ascii')))
 
 
 def day5b(s):
-	return min(day5a(''.join(x for x in s if x.lower() != a))
-			for a in set(s.lower()))
+	s = day5(bytearray(s, 'ascii'))
+	return min(len(day5(bytearray(x for x in s if x | 32 != a)))
+			for a in range(ord('a'), ord('a') + 26))
 
 
 def benchmark():

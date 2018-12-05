@@ -18,7 +18,7 @@
 void day1() {
 	int cur = 0;
 	char *line = NULL;
-	size_t size;
+	size_t size = 0;
 	int inp[1000];
 	int n;
 	while (1) {
@@ -52,7 +52,7 @@ void day1() {
 
 void day2() {
 	char *line = NULL;
-	size_t size;
+	size_t size = 0;
 	int length;
 	int twice = 0, thrice = 0;
 	int counts[26];
@@ -109,8 +109,7 @@ void day2() {
 void day3() {
 	char *line = NULL;
 	char *ptr = NULL;
-	size_t size;
-	int length;
+	size_t size = 0;
 	char fabric[1000][1000] = {0};
 	int ids[1500], xs[1500], ys[1500], widths[1500], heights[1500];
 	int n = 0, count = 0;
@@ -153,9 +152,109 @@ breakloop:
 }
 
 
+int _strcmp(const void *a, const void *b) {
+	return strcmp(*(char * const *)a, *(char * const *)b);
+}
+
+void day4() {
+	char *lines[2000] = {NULL};
+	size_t size = 0;
+	int numlines = 0;
+	int minute, start, guard;
+	int best = 0;
+	int naps[10000][60] = {0};
+
+	while (getline(&(lines[numlines]), &size, stdin) != -1) {
+		size = 0;
+		numlines += 1;
+	}
+	qsort(lines, numlines, sizeof(char *), _strcmp);
+	for (int n=0; n<numlines; n++) {
+		minute = strtol(lines[n] + 15, NULL, 10);
+		if (lines[n][19] == 'G') { // Guard #...
+			guard = strtol(lines[n] + 26, NULL, 10);
+		} else if (lines[n][19] == 'f') { // falls asleep
+			start = minute;
+		} else if (lines[n][19] == 'w') {  // wakes up
+			for (int a=start; a<minute; a++) {
+				naps[guard][a] += 1;
+			}
+		}
+	}
+	for (int n=0; n<10000; n++) {
+		int sum = 0;
+		for (int a=0; a<60; a++) {
+			sum += naps[n][a];
+		}
+		if (sum > best) {
+			best = sum;
+			guard = n;
+		}
+	}
+	minute = 0;
+	for (int a=0; a<60; a++) {
+		minute = naps[guard][a] > naps[guard][minute] ? a : minute;
+	}
+	printf("%d\n", minute * guard);
+
+	best = 0;
+	for (int n=0; n<10000; n++) {
+		int max = 0;
+		for (int a=0; a<60; a++) {
+			max = naps[n][a] > max ? naps[n][a] : max;
+		}
+		if (max > best) {
+			best = max;
+			guard = n;
+		}
+	}
+	minute = 0;
+	for (int a=0; a<60; a++) {
+		minute = naps[guard][a] > naps[guard][minute] ? a : minute;
+	}
+	printf("%d\n", minute * guard);
+}
+
+
+void day5() {
+	char *line = NULL;
+	size_t size = 0;
+	char result[10000] = {0};
+	int m = 0;
+	int length = getline(&line, &size, stdin);
+	for (int n=0; n < length - 1; n++) {
+		if (m && (line[n] ^ 32) == result[m - 1]) {
+			m -= 1;
+		} else {
+			result[m] = line[n];
+			m += 1;
+		}
+	}
+	printf("%d\n", m);
+
+	int best = m;
+	int mm = 0;
+	char result2[10000] = {0};
+	for (int skip=97; skip < 97 + 26; skip++) {
+		mm = 0;
+		for (int n=0; n < m; n++) {
+			if ((result[n] | 32) == skip) {
+			} else if (mm && (result[n] ^ 32) == result2[mm - 1]) {
+				mm -= 1;
+			} else {
+				result2[mm] = result[n];
+				mm += 1;
+			}
+		}
+		best = mm < best ? mm : best;
+	}
+	printf("%d\n", best);
+}
+
+
 typedef void (*funcdef)();
 
-funcdef func[25] = {&day1, &day2, &day3};
+funcdef func[25] = {&day1, &day2, &day3, &day4, &day5};
 
 
 int main(int argc, char **argv) {
