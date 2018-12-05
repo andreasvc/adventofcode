@@ -87,6 +87,22 @@ def day4b(s):
 	return guard * naps[guard].argmax()
 
 
+def day5a(s):
+	s = bytearray(s, 'ascii')
+	length = -1
+	while len(s) != length:
+		length = len(s)
+		for n in range(len(s) - 1, 0, -1):
+			if n < len(s) and s[n] ^ 32 == s[n - 1]:
+				s[n - 1:n + 1] = []
+	return len(s)
+
+
+def day5b(s):
+	return min(day5a(''.join(x for x in s if x.lower() != a))
+			for a in set(s.lower()))
+
+
 def benchmark():
 	import timeit
 	for name in list(globals()):
