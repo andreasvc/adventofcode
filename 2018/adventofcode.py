@@ -107,6 +107,127 @@ def day5b(s):
 			for a in range(ord('a'), ord('a') + 26))
 
 
+def day6a(s):
+	from scipy.spatial import cKDTree
+	X = np.array([[int(a) for a in line.split(',')]
+			for line in s.splitlines()
+			if line.strip()])
+	tree = cKDTree(X)
+	width, height = X[:, 0].max() + 1, X[:, 1].max() + 1
+	borderqueries = [(x, y)
+			for x in range(width)
+			for y in (0, height - 1)] + [
+			(x, y)
+			for x in (0, width - 1)
+			for y in range(height)]
+	dists, inds = tree.query(borderqueries, p=1, k=1)
+	infinite = set(inds)
+	queries = [(x, y)
+			for x in range(1, width - 1)
+			for y in range(1, height - 1)]
+	dists, inds = tree.query(queries, p=1, k=2)
+	return next(b for a, b in Counter(inds[dists[:, 0] != dists[:, 1], 0]
+			).most_common() if a not in infinite)
+
+
+def day6b(s):
+	from scipy.spatial import distance_matrix
+	X = np.array([[int(a) for a in line.split(',')]
+			for line in s.splitlines()
+			if line.strip()])
+	width, height = X[:, 0].max() + 1, X[:, 1].max() + 1
+	queries = [(x, y)
+			for x in range(width)
+			for y in range(height)]
+	dists = distance_matrix(X, queries, p=1)
+	return (dists.sum(axis=0) < 10000).sum()
+
+
+def day7a(s):
+	def visit(node):
+		if node in seen:
+			return
+		for m in sorted({b for a, b in constraints if a == node},
+				reverse=True):
+			visit(m)
+		seen.add(node)
+		result.insert(0, node)
+
+	constraints = {(a.split()[1], a.split()[7]) for a in s.splitlines()}
+	steps = sorted({a for pair in constraints for a in pair})
+	result = []
+	seen = set()
+	while steps:
+		node = steps.pop()
+		if node in seen:
+			continue
+		visit(node)
+	return ''.join(result)
+
+
+def day7b(s):
+	queue = list(day7a(s))
+	constraints = {(a.split()[1], a.split()[7]) for a in s.splitlines()}
+	time = 0
+	numworkers = 5
+	duration = 60
+	workers = [None for _ in range(numworkers)]
+	done = []
+	while True:
+		for n, worker in enumerate(workers):
+			if worker is not None and worker[0] == time:
+				done.append(worker[1])
+				workers[n] = None
+				if not queue:
+					return time
+		for n, worker in enumerate(workers):
+			if worker is None and queue:
+				for m, task in enumerate(queue):
+					if all(a in done for a, b in constraints if b == task):
+						queue.pop(m)
+						workers[n] = (time + duration + ord(task) - 64, task)
+						break
+		time += 1
+
+
+def day8a(s):
+	def getnode(i):
+		numchildren = inp[i]
+		nummd = inp[i + 1]
+		i += 2
+		md = []
+		for _ in range(numchildren):
+			i, b = getnode(i)
+			md.extend(b)
+		md.extend(inp[i:i + nummd])
+		return i + nummd, md
+
+	inp = [int(a) for a in s.split()]
+	_, md = getnode(0)
+	return sum(md)
+
+
+def day8b(s):
+	def getnode(i):
+		numchildren = inp[i]
+		nummd = inp[i + 1]
+		i += 2
+		values = []
+		for _ in range(numchildren):
+			i, b = getnode(i)
+			values.append(b)
+		if numchildren == 0:
+			result = sum(inp[i:i + nummd])
+		else:
+			result = sum(values[a - 1] for a in inp[i:i + nummd]
+					if a - 1 < len(values))
+		return i + nummd, result
+
+	inp = [int(a) for a in s.split()]
+	_, result = getnode(0)
+	return result
+
+
 def benchmark():
 	import timeit
 	for name in list(globals()):
