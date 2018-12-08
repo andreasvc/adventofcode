@@ -110,21 +110,14 @@ def day5b(s):
 def day6a(s):
 	from scipy.spatial import cKDTree
 	X = np.array([[int(a) for a in line.split(',')]
-			for line in s.splitlines()
-			if line.strip()])
+			for line in s.splitlines() if line.strip()])
 	tree = cKDTree(X)
 	width, height = X[:, 0].max() + 1, X[:, 1].max() + 1
-	borderqueries = [(x, y)
-			for x in range(width)
-			for y in (0, height - 1)] + [
-			(x, y)
-			for x in (0, width - 1)
-			for y in range(height)]
-	dists, inds = tree.query(borderqueries, p=1, k=1)
-	infinite = set(inds)
-	queries = [(x, y)
-			for x in range(1, width - 1)
-			for y in range(1, height - 1)]
+	borderqueries = [(x, y) for x in range(width) for y in (0, height - 1)]
+	borderqueries += [(x, y) for x in (0, width - 1) for y in range(height)]
+	infinite = set(tree.query(borderqueries, p=1, k=1)[1])
+	xv, yv = np.meshgrid(np.arange(1, width - 1), np.arange(1, height - 1))
+	queries = np.dstack([xv, yv]).reshape(-1, 2)
 	dists, inds = tree.query(queries, p=1, k=2)
 	return next(b for a, b in Counter(inds[dists[:, 0] != dists[:, 1], 0]
 			).most_common() if a not in infinite)
@@ -133,12 +126,10 @@ def day6a(s):
 def day6b(s):
 	from scipy.spatial import distance_matrix
 	X = np.array([[int(a) for a in line.split(',')]
-			for line in s.splitlines()
-			if line.strip()])
+			for line in s.splitlines() if line.strip()])
 	width, height = X[:, 0].max() + 1, X[:, 1].max() + 1
-	queries = [(x, y)
-			for x in range(width)
-			for y in range(height)]
+	xv, yv = np.meshgrid(np.arange(width), np.arange(height))
+	queries = np.dstack([xv, yv]).reshape(-1, 2)
 	dists = distance_matrix(X, queries, p=1)
 	return (dists.sum(axis=0) < 10000).sum()
 
