@@ -3,7 +3,7 @@ import re
 import sys
 import datetime
 from itertools import cycle
-from collections import Counter, defaultdict
+from collections import Counter, defaultdict, deque
 import numpy as np
 
 
@@ -217,6 +217,28 @@ def day8b(s):
 	inp = [int(a) for a in s.split()]
 	_, result = getnode(0)
 	return result
+
+
+def day9a(s):
+	players = int(s.split()[0])
+	last = int(s.split()[-2])
+	circle = deque([0])
+	scores = [0] * (players + 1)
+	for marble in range(1, last, 23):
+		for n in range(marble, marble + 22):
+			circle.rotate(2)
+			circle.append(n)
+		circle.rotate(-7)
+		marble += 22
+		scores[marble % players] += marble + circle.pop()
+	return max(scores)
+
+
+def day9b(s):
+	players = int(s.split()[0])
+	last = int(s.split()[-2])
+	return day9a('%d players; last marble is worth %d points' % (
+			players, last * 100))
 
 
 def benchmark():
