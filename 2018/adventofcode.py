@@ -241,6 +241,36 @@ def day9b(s):
 			players, last * 100))
 
 
+def day10(s):
+	inp = np.array([
+		[int(a) for a in re.findall(r'-?\d+', line)]
+		for line in s.splitlines()], dtype=int)
+	pos, vel = inp[:, :2], inp[:, 2:]
+	minwidth = minheight = 99999999
+	for n in range(9999999):
+		pos += vel
+		width = pos[:, 0].max() - pos[:, 0].min()
+		height = pos[:, 1].max() - pos[:, 1].min()
+		if width > minwidth or height > minheight:
+			pos -= vel
+			break
+		minwidth, minheight = width, height
+	out = [['.'] * (minwidth + 1) for _ in range(minheight + 1)]
+	x1, y1 = pos[:, 0].min(), pos[:, 1].min()
+	for x, y in pos:
+		out[y - y1][x - x1] = '#'
+	out = '\n'.join(''.join(line) for line in out)
+	return out, n
+
+
+def day10a(s):
+	return day10(s)[0]
+
+
+def day10b(s):
+	return day10(s)[1]
+
+
 def benchmark():
 	import timeit
 	for name in list(globals()):
