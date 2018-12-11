@@ -5,6 +5,7 @@ import datetime
 from itertools import cycle
 from collections import Counter, defaultdict, deque
 import numpy as np
+from numba import njit
 
 
 def day1a(s):
@@ -269,6 +270,49 @@ def day10a(s):
 
 def day10b(s):
 	return day10(s)[1]
+
+
+def day11(s):
+	def powerlevel(serial, x, y):
+		rackid = x + 10
+		result = rackid * y
+		result += serial
+		result *= rackid
+		result = (result // 100) % 10
+		return result - 5
+
+	serial = int(s)
+	buf = np.zeros((301, 301), dtype=int)
+	for x in range(1, 301):
+		for y in range(1, 301):
+			buf[x, y] = powerlevel(serial, x, y)
+	return serial, buf
+
+
+def day11a(s):
+	serial, buf = day11(s)
+	return '%d,%d' % max(((x, y)
+			for x in range(1, 301 - 3)
+				for y in range(1, 301 - 3)),
+			key=lambda a: buf[a[0]:a[0] + 3, a[1]:a[1] + 3].sum())
+
+
+@njit
+def _day11b(serial, buf):
+	n, m = 0, (0, 0, 0)
+	for size in range(1, 301):
+		print(size)
+		for x in range(1, 301 - size):
+			for y in range(1, 301 - size):
+				nn = buf[x:x + size, y:y + size].sum()
+				if nn > n:
+					n, m = nn, (x, y, size)
+					print(n, m)
+	return m
+
+
+def day11b(s):
+	return '%d,%d,%d' % _day11b(*day11(s))
 
 
 def benchmark():
