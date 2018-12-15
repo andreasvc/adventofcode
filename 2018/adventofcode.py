@@ -315,6 +315,129 @@ def day11b(s):
 	return '%d,%d,%d' % _day11b(*day11(s))
 
 
+def day12a(s):
+	padding = 25
+	state = np.array([0] * padding + [a == '#'
+			for a in s.splitlines()[0].split(': ')[1]] + [0] * padding,
+			dtype=np.bool)
+	rules = np.array([[a == '#' for a in line.replace(' => ', '')]
+			for line in s.splitlines()[2:]],
+			dtype=np.bool)
+	print(' 0: %s' % ''.join('.#'[a] for a in state))
+	for gen in range(1, 21):
+		newstate = np.zeros(len(state), dtype=np.bool)
+		for n in range(2, len(state) - 2):
+			for rule in rules:
+				if (state[n - 2:n + 3] == rule[:5]).all():
+					newstate[n] = rule[5]
+					break
+		state = newstate
+		print('%2d: %s' % (gen, ''.join('.#'[a] for a in state)))
+	for n, a in enumerate(state, -padding):
+		if a:
+			print(n)
+	return sum(n for n, a in enumerate(state, -padding) if a)
+
+
+def day13(s):
+	state = [[a for a in line] for line in s.splitlines()]
+	tracks = [line.copy() for line in state]
+	carts = []
+	firstcollision = lastcart = None
+	for y in range(len(state)):
+		for x in range(len(state[0])):
+			if tracks[y][x] in '<>^v':
+				carts.append((y, x, 0))
+				tracks[y][x] = '-' if tracks[y][x] in '<>' else '|'
+	turns = {
+			'^': {'|': '^', '/': '>', '\\': '<', '+': '<^>'},
+			'>': {'-': '>', '/': '^', '\\': 'v', '+': '^>v'},
+			'v': {'|': 'v', '/': '<', '\\': '>', '+': '>v<'},
+			'<': {'-': '<', '/': 'v', '\\': '^', '+': 'v<^'},
+			}
+	while True:
+		for n, (y, x, direction) in enumerate(carts):
+			if direction == -1:
+				continue
+			cur = state[y][x]
+			state[y][x] = tracks[y][x]
+			if cur == '^':
+				y -= 1
+			elif cur == '>':
+				x += 1
+			elif cur == 'v':
+				y += 1
+			elif cur == '<':
+				x -= 1
+			if state[y][x] not in '-|+/\\':
+				direction = -1
+			elif tracks[y][x] == '+':
+				state[y][x] = turns[cur][tracks[y][x]][direction]
+				direction = (direction + 1) % 3
+			else:
+				state[y][x] = turns[cur][tracks[y][x]]
+			carts[n] = (y, x, direction)
+			if direction == -1:
+				if firstcollision is None:
+					firstcollision = '%d,%d' % (x, y)
+				state[y][x] = tracks[y][x]
+				for m, (ay, ax, _) in enumerate(carts):
+					if ay == y and ax == x:
+						carts[m] = (ay, ax, -1)
+		if sum(direction != -1 for _, _, direction in carts) == 1:
+			for y, x, direction in carts:
+				if direction != -1:
+					lastcart = '%d,%d' % (x, y)
+					return firstcollision, lastcart
+		carts.sort()
+
+
+def day13a(s):
+	return day13(s)[0]
+
+
+def day13b(s):
+	return day13(s)[1]
+
+
+def day14a(s):
+	num = int(s)
+	states = a, b = [3, 7]
+	na, nb = 0, 1
+	while True:
+		x = states[na] + states[nb]
+		if x >= 10:
+			states.append(x // 10)
+			states.append(x % 10)
+		else:
+			states.append(x)
+		na = (na + a + 1) % len(states)
+		nb = (nb + b + 1) % len(states)
+		a, b = states[na], states[nb]
+		if len(states) >= num + 10:
+			return ''.join(str(x) for x in states[num:num + 10])
+
+
+def day14b(s):
+	pattern = [int(a) for a in s]
+	states = a, b = [3, 7]
+	na, nb = 0, 1
+	while True:
+		x = states[na] + states[nb]
+		if x >= 10:
+			states.append(x // 10)
+			states.append(x % 10)
+		else:
+			states.append(x)
+		na = (na + a + 1) % len(states)
+		nb = (nb + b + 1) % len(states)
+		a, b = states[na], states[nb]
+		if states[-7:-1] == pattern:
+			return len(states) - 7
+		if states[-6:] == pattern:
+			return len(states) - 6
+
+
 def benchmark():
 	import timeit
 	for name in list(globals()):
