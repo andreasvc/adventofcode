@@ -438,6 +438,130 @@ def day14b(s):
 			return len(states) - 6
 
 
+def day16(s):
+	samples, program = s.split('\n\n\n')
+	before = []
+	after = []
+	instruction = []
+	for chunk in samples.split('\n\n'):
+		a, b, c = chunk.splitlines()
+		a = [int(x) for x in a.split(':')[1].strip(' []').split(', ')]
+		c = [int(x) for x in c.split(':')[1].strip(' []').split(', ')]
+		before.append(a)
+		after.append(c)
+		b = [int(x) for x in b.split()]
+		instruction.append(b)
+	possible = []
+	for before, (op, val1, val2, out), after in zip(before, instruction, after):
+		opcodes = set()
+		# immediate only
+		if val1 == after[out]:
+			opcodes.add('seti')
+		# immediate, register
+		if val2 < 4 and out < 4:
+			if (val1 > before[val2]) == after[out]:
+				opcodes.add('gtir')
+			if (val1 == before[val2]) == after[out]:
+				opcodes.add('eqir')
+		# register, (immediate)
+		if val1 < 4 and out < 4:
+			if (before[val1] + val2) == after[out]:
+				opcodes.add('addi')
+			if (before[val1] * val2) == after[out]:
+				opcodes.add('muli')
+			if (before[val1] & val2) == after[out]:
+				opcodes.add('bani')
+			if (before[val1] | val2) == after[out]:
+				opcodes.add('bori')
+			if (before[val1] > val2) == after[out]:
+				opcodes.add('gtri')
+			if (before[val1] == val2) == after[out]:
+				opcodes.add('eqri')
+			if before[val1] == after[out]:
+				opcodes.add('setr')
+		# register, register
+		if val1 < 4 and val2 < 4 and out < 4:
+			if before[val1] + before[val2] == after[out]:
+				opcodes.add('addr')
+			if before[val1] * before[val2] == after[out]:
+				opcodes.add('mulr')
+			if before[val1] & before[val2] == after[out]:
+				opcodes.add('banr')
+			if before[val1] | before[val2] == after[out]:
+				opcodes.add('borr')
+			if (before[val1] > before[val2]) == after[out]:
+				opcodes.add('gtrr')
+			if (before[val1] == before[val2]) == after[out]:
+				opcodes.add('eqrr')
+		possible.append(opcodes)
+	return possible, instruction
+
+
+def day16a(s):
+	possible, _ = day16(s)
+	return sum(1 for a in possible if len(a) >= 3)
+
+
+def day16b(s):
+	possible, instruction = day16(s)
+	opcodetbl = {}
+	ops = {op for op, _, _, _ in instruction}
+	while not all(len(a) == 1 for a in possible):
+		for op in ops:
+			x = [a for a, (op1, _, _, _)
+					in zip(possible, instruction) if op1 == op]
+			result = x[0]
+			result.intersection_update(*x[1:])
+			if len(result) == 1:
+				opcodetbl[next(iter(result))] = op
+				for a, (op1, _, _, _) in zip(possible, instruction):
+					if op1 == op:
+						a &= result
+					else:
+						a -= result
+	opcodes = sorted(opcodetbl, key=opcodetbl.get)
+	reg = [0] * 4
+	_, program = s.split('\n\n\n')
+	for line in program.splitlines():
+		if not line.strip():
+			continue
+		op, val1, val2, out = [int(a) for a in line.split()]
+		op = opcodes[op]
+		if op == 'seti':
+			reg[out] = val1
+		elif op == 'gtir':
+			reg[out] = int(val1 > reg[val2])
+		elif op == 'eqir':
+			reg[out] = int(val1 == reg[val2])
+		elif op == 'gtri':
+			reg[out] = int(reg[val1] > val2)
+		elif op == 'eqri':
+			reg[out] = int(reg[val1] == val2)
+		elif op == 'gtrr':
+			reg[out] = int(reg[val1] > reg[val2])
+		elif op == 'eqrr':
+			reg[out] = int(reg[val1] == reg[val2])
+		elif op == 'addi':
+			reg[out] = reg[val1] + val2
+		elif op == 'muli':
+			reg[out] = reg[val1] * val2
+		elif op == 'bani':
+			reg[out] = reg[val1] & val2
+		elif op == 'bori':
+			reg[out] = reg[val1] | val2
+		elif op == 'setr':
+			reg[out] = reg[val1]
+		elif op == 'addr':
+			reg[out] = reg[val1] + reg[val2]
+		elif op == 'mulr':
+			reg[out] = reg[val1] * reg[val2]
+		elif op == 'banr':
+			reg[out] = reg[val1] & reg[val2]
+		elif op == 'borr':
+			reg[out] = reg[val1] | reg[val2]
+	return reg[0]
+
+
 def benchmark():
 	import timeit
 	for name in list(globals()):
@@ -452,12 +576,17 @@ def benchmark():
 			print('%s\t%5.2fs' % (name, time))
 
 
-if __name__ == '__main__':
+def main():
 	if len(sys.argv) > 1 and sys.argv[1] == 'benchmark':
 		benchmark()
 	elif len(sys.argv) > 1 and sys.argv[1].startswith('day'):
-		print(globals()[sys.argv[1]](sys.stdin.read().rstrip('\n')))
+		inp = sys.stdin if len(sys.argv) == 2 else open(sys.argv[2])
+		print(globals()[sys.argv[1]](inp.read().rstrip('\n')))
 	else:
 		raise ValueError('unrecognized command. '
 				'usage: python3 adventofcode.py day[1-25][ab] < input'
 				'or: python3 adventofcode.py benchmark')
+
+
+if __name__ == '__main__':
+	main()
