@@ -1,9 +1,10 @@
 """Advent of Code 2017. http://adventofcode.com/2017 """
 import re
 import sys
-import array
+import itertools
 from collections import Counter, defaultdict
 import numpy as np
+from numba import njit
 
 
 def day1a(s):
@@ -171,7 +172,6 @@ def day8b(s):
 
 
 def day9(s, func):
-	import itertools
 	dists = {(f[0], f[2]): int(f[4]) for f in
 			(l.split() for l in s.splitlines())}
 	for a, b in list(dists):
@@ -188,6 +188,294 @@ def day9a(s):
 
 def day9b(s):
 	return day9(s, max)
+
+
+def day10a(s):
+	return day10(s, 40)
+
+
+def day10b(s):
+	return day10(s, 50)
+
+
+def day10(s, iterations):
+	for n in range(iterations):
+		s = ''.join(
+				'%d%s' % (len(m.group(0)), m.group(1))
+				for m in re.finditer(r'([0-9])\1*', s))
+	return len(s)
+
+
+def day11a(s):
+	num = 0
+	for n, a in enumerate(s[::-1]):  # convert to number
+		num += (ord(a) - 97) * 26 ** n
+	while True:
+		num += 1
+		n, s = num, ''
+		while n:  # convert number back to string
+			n, m = divmod(n, 26)
+			s = chr(97 + m) + s
+		if (any(ord(c) - ord(b) == ord(b) - ord(a) == 1 for a, b, c in
+				zip(s, s[1:], s[2:]))
+				and 'i' not in s and 'o' not in s and 'l' not in s
+				and len(set(re.findall(r'(.)\1', s))) >= 2):
+			return s
+
+
+def day11b(s):
+	return day11a(day11a(s))
+
+
+def day12a(s):
+	return sum(int(a) for a in re.findall('[-0-9]+', s))
+
+
+def day12b(s):
+	def traverse(data):
+		if isinstance(data, dict):
+			if 'red' in data.values():
+				return 0
+			return sum(traverse(a) for a in data.values())
+		elif isinstance(data, list):
+			return sum(traverse(a) for a in data)
+		return data if isinstance(data, int) else 0
+
+	import json
+	return traverse(json.loads(s))
+
+
+def day13(s):
+	def solve(data, names):
+		return max(
+				sum(data.get((a, b), 0) for a, b in zip(perm, perm[1:]))
+				for perm in
+					(perm + perm[0:1] + perm[::-1] for perm
+					in itertools.permutations(names, len(names))))
+
+	data = {(fields[0], fields[-1]):
+				int(fields[3]) if fields[2] == 'gain' else -int(fields[3])
+			for fields in
+			(line.rstrip('.').split() for line in s.splitlines())}
+	names = {a for a, _ in data}
+	return solve(data, names), solve(data, names | {'yourself'})
+
+
+def day14a(s):
+	data = {fields[0]: (int(fields[3]), int(fields[6]), int(fields[-2]))
+			for fields in (line.split() for line in s.splitlines())}
+	duration = 2503
+	return max(
+			((duration // (flytime + resttime)) * speed * flytime)
+			+ min(duration % (flytime + resttime), flytime) * speed
+			for name, (speed, flytime, resttime) in data.items())
+
+
+def day14btest(s):
+	return day14b(s, 1000)
+
+
+def day14b(s, duration=2503):
+	data = {fields[0]: (int(fields[3]), int(fields[6]), int(fields[-2]))
+			for fields in (line.split() for line in s.splitlines())}
+	points = dict.fromkeys(data, 0)
+	distance = dict.fromkeys(data, 0)
+	state = {name: ('flying', flytime)
+			for name, (_, flytime, _) in data.items()}
+	for n in range(duration):
+		for name, (activity, timeleft) in state.items():
+			speed, flytime, resttime = data[name]
+			if activity == 'flying':
+				distance[name] += speed
+			if timeleft > 1:
+				state[name] = activity, timeleft - 1
+			else:
+				state[name] = (('resting', resttime) if activity == 'flying'
+						else ('flying', flytime))
+		for name in distance:
+			if distance[name] == max(distance.values()):
+				points[name] += 1
+	return max(points.values())
+
+
+def day15a(s):
+	def squashandmult(seq):
+		return 0 if (seq < 0).any() else seq.prod()
+
+	data = {name:
+			np.array([int(a.split()[1]) for a in fields.split(', ')
+				if not a.startswith('calories')], dtype=np.int)
+			for name, fields in
+			(line.split(':', 1) for line in s.splitlines())}
+	return max(
+			(squashandmult(sum(data[elem] for elem in comb)),
+				list(Counter(comb).values()))
+			for comb in itertools.combinations_with_replacement(
+				data.keys(), 100))
+
+
+def day15b(s):
+	def squashandmult(seq):
+		return 0 if (seq < 0).any() else seq.prod()
+
+	data = {name:
+			np.array([int(a.split()[1]) for a in fields.split(', ')],
+				dtype=np.int)
+			for name, fields in
+			(line.split(':', 1) for line in s.splitlines())}
+	return max(
+			(squashandmult(sum(data[elem][:-1] for elem in comb)),
+				list(Counter(comb).values()))
+			for comb in itertools.combinations_with_replacement(
+				data.keys(), 100)
+			if sum(data[elem][-1] for elem in comb) == 500)
+
+
+def day16a(s):
+	data = [line.split(': ', 1)[1].split(', ')
+			for line in s.splitlines()]
+	aunt = """children: 3
+cats: 7
+samoyeds: 2
+pomeranians: 3
+akitas: 0
+vizslas: 0
+goldfish: 5
+trees: 3
+cars: 2
+perfumes: 1"""
+	return [n for n, props in enumerate(data, 1)
+			if all(a in aunt for a in props)].pop()
+
+
+def day16b(s):
+	data = [{a.split(':')[0]: int(a.split(':')[1])
+				for a in line.split(': ', 1)[1].split(', ')}
+			for line in s.splitlines()]
+	aunt = {a.split(':')[0]: int(a.split(':')[1])
+			for a in """children: 3
+cats: 7
+samoyeds: 2
+pomeranians: 3
+akitas: 0
+vizslas: 0
+goldfish: 5
+trees: 3
+cars: 2
+perfumes: 1""".splitlines()}
+	return [n for n, props in enumerate(data, 1)
+			if all(
+				aunt[a] < b if a in ('cats', 'trees')
+				else (aunt[a] > b if a in ('pomeranians', 'goldfish')
+				else aunt[a] == b)
+				for a, b in props.items())].pop()
+
+
+def day17a(s, goal=150):
+	data = [int(a) for a in s.splitlines()]
+	return sum(sum(comb) == goal
+			for n in range(1, len(data) + 1)
+			for comb in itertools.combinations(data, n))
+
+
+def day17b(s, goal=150):
+	data = [int(a) for a in s.splitlines()]
+	lens = [len(comb)
+			for n in range(1, len(data) + 1)
+				for comb in itertools.combinations(data, n)
+			if sum(comb) == goal]
+	return lens.count(min(lens))
+
+
+def day18a(s):
+	data = np.array([[a == '#' for a in line]
+			for line in s.splitlines()], dtype=np.bool)
+	new = np.zeros(data.shape)
+	for n in range(100):
+		for x in range(data.shape[0]):
+			for y in range(data.shape[1]):
+				neighbors = data[
+							max(x - 1, 0):min(x + 2, data.shape[0]),
+							max(y - 1, 0):min(y + 2, data.shape[1])].sum()
+				if data[x, y]:
+					new[x, y] = 3 <= neighbors <= 4
+				else:
+					new[x, y] = neighbors == 3
+		data, new = new, data
+	return data.sum().sum()
+
+
+def day18b(s):
+	data = np.array([[a == '#' for a in line]
+			for line in s.splitlines()], dtype=np.bool)
+	new = np.zeros(data.shape)
+	for n in range(100):
+		data[0, 0] = data[data.shape[0] - 1, 0] = 1
+		data[0, data.shape[1] - 1] = 1
+		data[data.shape[0] - 1, data.shape[1] - 1] = 1
+		for x in range(data.shape[0]):
+			for y in range(data.shape[1]):
+				neighbors = data[
+							max(x - 1, 0):min(x + 2, data.shape[0]),
+							max(y - 1, 0):min(y + 2, data.shape[1])].sum()
+				if data[x, y]:
+					new[x, y] = 3 <= neighbors <= 4
+				else:
+					new[x, y] = neighbors == 3
+		data, new = new, data
+	data[0, 0] = data[data.shape[0] - 1, 0] = 1
+	data[0, data.shape[1] - 1] = 1
+	data[data.shape[0] - 1, data.shape[1] - 1] = 1
+	return data.sum().sum()
+
+
+def day19a(s):
+	data = [line.split(' => ') for line in s.splitlines() if '=>' in line]
+	molecule = s.splitlines()[-1]
+	results = set()
+	for a, b in data:
+		for m in re.finditer(a, molecule):
+			results.add(molecule[:m.start()] + b + molecule[m.end():])
+	return len(results)
+
+
+def day19b(s):
+	data = [line.split(' => ') for line in s.splitlines() if '=>' in line]
+	cur = {s.splitlines()[-1]}
+	generation = 0
+	while True:
+		generation += 1
+		new = set()
+		for mol in cur:
+			for a, b in data:
+				for m in re.finditer(b, mol):
+					new.add(mol[:m.start()] + a + mol[m.end():])
+		cur = {min(new, key=lambda x: len(x))}
+		print(generation, cur)
+		if 'e' in cur:
+			return generation
+
+
+def day20a(s):
+	goal = int(s)
+	houses = [0] * 1000000
+	for n in range(1, len(houses)):
+		for m in range(n, len(houses), n):
+			houses[m] += n * 10
+	for n in range(len(houses)):
+		if houses[n] >= goal:
+			return n
+
+
+def day20b(s):
+	goal = int(s)
+	houses = [0] * 1000000
+	for n in range(1, len(houses) + 1):
+		for m in range(n, min(len(houses), 50 * n + 1), n):
+			houses[m] += n * 11
+	for n in range(len(houses)):
+		if houses[n] >= goal:
+			return n
 
 
 # -------8<-------- Tests  -------8<--------
