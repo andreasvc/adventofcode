@@ -1,4 +1,5 @@
 """Advent of Code 2020. http://adventofcode.com/2020 """
+import os
 import re
 import sys
 import operator
@@ -431,11 +432,58 @@ def day17b(s):
 
 
 def day18a(s):
-	return ...
+	def myeval(line):
+		if line.strip().isdigit():
+			val, rest = line, None
+		elif line[-1] == ')':
+			par = 1
+			pos = len(line) - 2
+			while par:
+				if line[pos] == ')':
+					par += 1
+				elif line[pos] == '(':
+					par -= 1
+				pos -= 1
+				if pos < 0 and par:
+					raise ValueError('unbalanced parentheses: %r' % line)
+			val = myeval(line[pos + 2:len(line) - 1])
+			rest = line[:pos + 1].rstrip()
+		else:
+			if ' ' not in line:
+				raise ValueError('unbalanced parentheses: %r' % line)
+			rest, val = line.rsplit(' ', 1)
+		if not rest:
+			result = int(val)
+		elif rest[-1] == '+':
+			result = myeval(rest[:-1].rstrip()) + int(val)
+		elif rest[-1] == '*':
+			result = myeval(rest[:-1].rstrip()) * int(val)
+		else:
+			raise ValueError(repr(line))
+		return result
+
+	return sum(myeval(line) for line in s.splitlines())
 
 
 def day18b(s):
-	return ...
+	# https://en.wikipedia.org/wiki/Operator-precedence_parser#Alternative_methods
+	def preproc(line):
+		res = '((('
+		tokens = list(line.replace(' ', ''))
+		for n, tok in enumerate(tokens):
+			if tok == '(':
+				res += '((('
+			elif tok == ')':
+				res += ')))'
+			elif tok == '+':
+				res += ') + ('
+			elif tok == '*':
+				res += ')) * (('
+			else:
+				res += tok
+		return res + ')))'
+
+	return day18a('\n'.join(preproc(line) for line in s.splitlines()))
 
 
 def day19a(s):
@@ -498,7 +546,7 @@ def benchmark():
 	import timeit
 	for name in list(globals()):
 		match = re.match(r'day(\d+)[ab]', name)
-		if match is not None:
+		if match is not None and os.path.exists('i%s' % match.group(1)):
 			time = timeit.timeit(
 					'%s(inp)' % name,
 					setup='inp = open("i%s").read().rstrip("\\n")'
@@ -512,11 +560,12 @@ def main():
 	if len(sys.argv) > 1 and sys.argv[1] == 'benchmark':
 		benchmark()
 	elif len(sys.argv) > 1 and sys.argv[1].startswith('day'):
-		inp = sys.stdin if len(sys.argv) == 2 else open(sys.argv[2])
-		print(globals()[sys.argv[1]](inp.read().rstrip('\n')))
+		with open('i' + sys.argv[1][3:].rstrip('ab') if len(sys.argv) == 2
+				else sys.argv[2]) as inp:
+			print(globals()[sys.argv[1]](inp.read().rstrip('\n')))
 	else:
 		raise ValueError('unrecognized command. '
-				'usage: python3 adventofcode.py day[1-25][ab] < input'
+				'usage: python3 adventofcode.py day[1-25][ab] [input]'
 				'or: python3 adventofcode.py benchmark')
 
 
