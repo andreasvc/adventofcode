@@ -3,8 +3,9 @@ import os
 import re
 import sys
 import operator
+from itertools import product
 from functools import reduce
-# from collections import Counter, defaultdict, deque
+from collections import Counter, defaultdict, deque
 # import numpy as np
 # from numba import njit
 
@@ -258,35 +259,177 @@ def day9b(s):
 
 
 def day10a(s):
-	return ...
+	numbers = [0] + [int(a) for a in s.split()]
+	numbers.append(max(numbers) + 3)
+	numbers.sort()
+	cnt = Counter(b - a for a, b in zip(numbers, numbers[1:]))
+	return cnt[1] * cnt[3]
 
 
 def day10b(s):
-	return ...
+	# https://old.reddit.com/r/adventofcode/comments/kacdbl/2020_day_10c_part_2_no_clue_how_to_begin/gf9lzhd/
+	numbers = sorted(int(a) for a in s.split())
+	numbers = [0] + numbers + [max(numbers) + 3]
+	result = [0] * len(numbers)
+	result[0] = 1
+	for n, a in enumerate(numbers):
+		for m in range(n + 1, min(n + 4, len(numbers))):
+			if numbers[m] - a <= 3:
+				result[m] += result[n]
+	return result[-1]
 
 
 def day11a(s):
-	return ...
+	def nb(grid, x, y):
+		return sum(grid[yy][xx] == 2
+				for yy in range(max(0, y - 1), min(len(grid), y + 2))
+					for xx in range(max(0, x - 1), min(len(grid[0]), x + 2)))
+
+	newgrid = [[1 if char == 'L' else 0 for char in line]
+			for line in s.splitlines()]
+	grid = None
+	while newgrid != grid:
+		grid = newgrid
+		newgrid = [row.copy() for row in grid]
+		for y, row in enumerate(grid):
+			for x, elem in enumerate(row):
+				if grid[y][x] == 0:
+					continue
+				nbs = nb(grid, x, y)
+				if grid[y][x] == 1 and nbs == 0:
+					newgrid[y][x] = 2
+				elif grid[y][x] == 2 and nbs > 4:
+					newgrid[y][x] = 1
+	return sum(1 for row in grid for elem in row if elem == 2)
 
 
 def day11b(s):
-	return ...
+	def nb(grid, x, y):
+		nbs = 0
+		for dx in [-1, 0, 1]:
+			for dy in [-1, 0, 1]:
+				if dx == dy == 0:
+					continue
+				xx = x + dx
+				yy = y + dy
+				while (0 <= yy < len(grid) and 0 <= xx < len(grid[0])
+						and grid[yy][xx] == 0):
+					xx += dx
+					yy += dy
+				nbs += (0 <= yy < len(grid) and 0 <= xx < len(grid[0])
+						and grid[yy][xx] == 2)
+		return nbs
+
+	newgrid = [[1 if char == 'L' else 0 for char in line]
+			for line in s.splitlines()]
+	grid = None
+	while newgrid != grid:
+		grid = newgrid
+		newgrid = [row.copy() for row in grid]
+		for y, row in enumerate(grid):
+			for x, elem in enumerate(row):
+				if grid[y][x] == 0:
+					continue
+				nbs = nb(grid, x, y)
+				if grid[y][x] == 1 and nbs == 0:
+					newgrid[y][x] = 2
+				elif grid[y][x] == 2 and nbs > 4:
+					newgrid[y][x] = 1
+	return sum(elem == 2 for row in grid for elem in row)
 
 
 def day12a(s):
-	return ...
+	x = y = 0
+	dirx, diry = 1, 0
+	print(x, y, dirx, diry)
+	for cmd in s.splitlines():
+		op, amount = cmd[0], int(cmd[1:])
+		if op == 'N':
+			y -= amount
+		elif op == 'S':
+			y += amount
+		elif op == 'E':
+			x += amount
+		elif op == 'W':
+			x -= amount
+		elif op == 'L':
+			if amount == 180:
+				dirx, diry = -dirx, -diry
+			elif amount == 90:
+				dirx, diry = diry, -dirx
+			elif amount == 270:
+				dirx, diry = -diry, dirx
+		elif op == 'R':
+			if amount == 180:
+				dirx, diry = -dirx, -diry
+			elif amount == 90:
+				dirx, diry = -diry, dirx
+			elif amount == 270:
+				dirx, diry = diry, -dirx
+		elif op == 'F':
+			x += dirx * amount
+			y += diry * amount
+		print(cmd, x, y, dirx, diry)
+	return abs(x) + abs(y)
 
 
 def day12b(s):
-	return ...
+	x = y = 0
+	wpx, wpy = 10, -1
+	print(x, y, wpx, wpy)
+	for cmd in s.splitlines():
+		op, amount = cmd[0], int(cmd[1:])
+		if op == 'N':
+			wpy -= amount
+		elif op == 'S':
+			wpy += amount
+		elif op == 'E':
+			wpx += amount
+		elif op == 'W':
+			wpx -= amount
+		elif op == 'L':
+			if amount == 180:
+				wpx, wpy = -wpx, -wpy
+			elif amount == 90:
+				wpx, wpy = wpy, -wpx
+			elif amount == 270:
+				wpx, wpy = -wpy, wpx
+		elif op == 'R':
+			if amount == 180:
+				wpx, wpy = -wpx, -wpy
+			elif amount == 90:
+				wpx, wpy = -wpy, wpx
+			elif amount == 270:
+				wpx, wpy = wpy, -wpx
+		elif op == 'F':
+			x += wpx * amount
+			y += wpy * amount
+		print(cmd, x, y, wpx, wpy)
+	return abs(x) + abs(y)
 
 
 def day13a(s):
-	return ...
+	timestamp, buses = s.splitlines()
+	timestamp = int(timestamp)
+	buses = [int(a) for a in buses.split(',') if a != 'x']
+	earliestbus = min((bus for bus in buses),
+			key=lambda bus: bus - timestamp % bus)
+	minutes = earliestbus - timestamp % earliestbus
+	return earliestbus * minutes
 
 
 def day13b(s):
-	return ...
+	_timestamp, buses = s.splitlines()
+	buses = buses.split(',')
+	ind = [n for n, a in enumerate(buses) if a != 'x']
+	buses = [int(a) for a in buses if a != 'x']
+	period, t = max(zip(buses, ind))
+	# too slow
+	init = 100000000000000
+	t = init + init % period - t
+	while not all((t + n) % a == 0 for n, a in zip(ind, buses)):
+		t += period
+	return t
 
 
 def day14a(s):
@@ -298,11 +441,29 @@ def day14b(s):
 
 
 def day15a(s):
-	return ...
+	numbers = [int(a) for a in s.split(',')]
+	while len(numbers) < 2020:
+		if numbers[-1] not in numbers[:-1]:
+			numbers.append(0)
+		else:
+			numbers.append(numbers[:-1][::-1].index(numbers[-1]) + 1)
+	return numbers[2019]
 
 
 def day15b(s):
-	return ...
+	numbers = [int(a) for a in s.split(',')]
+	spoken = {a: n for n, a in enumerate(numbers)}
+	dist = {a: len(numbers) - n - 1 for n, a in enumerate(numbers)}
+	nn = len(numbers)
+	prev = numbers[-1]
+	goal = 30000000
+	while nn < goal:
+		num = dist[prev] if prev in dist else 0
+		dist[num] = nn - spoken[num] if num in spoken else 0
+		spoken[num] = nn
+		prev = num
+		nn += 1
+	return prev
 
 
 def day16a(s):
