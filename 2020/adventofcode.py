@@ -3,11 +3,11 @@ import os
 import re
 import sys
 import operator
-from itertools import product
+import itertools
 from functools import reduce
 from collections import Counter, defaultdict, deque
 # import numpy as np
-# from numba import njit
+from numba import njit
 
 
 def day1a(s):
@@ -419,25 +419,81 @@ def day13a(s):
 
 
 def day13b(s):
-	_timestamp, buses = s.splitlines()
-	buses = buses.split(',')
-	ind = [n for n, a in enumerate(buses) if a != 'x']
-	buses = [int(a) for a in buses if a != 'x']
-	period, t = max(zip(buses, ind))
-	# too slow
-	init = 100000000000000
-	t = init + init % period - t
-	while not all((t + n) % a == 0 for n, a in zip(ind, buses)):
-		t += period
+	fields = s.splitlines()[1].split(',')
+	ind = [n for n, a in enumerate(fields) if a != 'x']
+	buses = [int(a) for a in fields if a != 'x']
+	# https://old.reddit.com/r/adventofcode/comments/kc4njx/2020_day_13_solutions/gfnwnf3/
+	t = 0
+	for n in range(1, len(buses) + 1):
+		while not all((t + n) % a == 0 for n, a in zip(ind[:n], buses[:n])):
+			t += period
+		period = reduce(operator.mul, buses[:n], 1)
+		print(n, t, period, buses[:n])
 	return t
 
 
+@njit
+def _day13b():
+	# Brute force. Took 1:41:02.37
+	# The input:
+	# ind = [0,  35,  41, 49, 54, 58, 70,  72, 91]
+	# bus = [41, 37, 541, 23, 13, 17, 29, 983, 19]
+	period = 983
+	t = period - 72
+	printstep = 10_000_000_000_000
+	printcur = printstep
+
+	while True:
+		if t > printcur:
+			print(t)
+			printcur += printstep
+		if (
+				(t + 41) % 541 == 0
+				and t % 41 == 0
+				and (t + 35) % 37 == 0
+				and (t + 70) % 29 == 0
+				and (t + 49) % 23 == 0
+				and (t + 91) % 19 == 0
+				and (t + 58) % 17 == 0
+				and (t + 54) % 13 == 0
+				# and (t + 72) % 983 == 0
+				):
+			return t
+		t += period
+
+
 def day14a(s):
-	return ...
+	mem = {}
+	onemask, zeromask = 0, (1 << 36) - 1
+	for line in s.splitlines():
+		lhs, val = line.split(' = ')
+		if lhs == 'mask':
+			onemask = sum(1 << n for n, a in enumerate(val[::-1]) if a == '1')
+			zeromask = ((1 << 36) - 1) ^ sum(
+					1 << n for n, a in enumerate(val[::-1]) if a == '0')
+		elif lhs.startswith('mem['):
+			mem[int(lhs[4:-1])] = int(val) & zeromask | onemask
+	return sum(mem.values())
 
 
 def day14b(s):
-	return ...
+	mem = {}
+	onemask = 0
+	floating = []
+	floatmask = ((1 << 36) - 1)
+	for line in s.splitlines():
+		lhs, val = line.split(' = ')
+		if lhs == 'mask':
+			onemask = sum(1 << n for n, a in enumerate(val[::-1]) if a == '1')
+			floating = [n for n, a in enumerate(val[::-1]) if a == 'X']
+			floatmask = ((1 << 36) - 1) ^ sum(1 << n for n in floating)
+		elif lhs.startswith('mem['):
+			loc = int(lhs[4:-1]) & floatmask | onemask
+			for comb in itertools.chain.from_iterable(
+					itertools.combinations(floating, length)
+					for length in range(len(floating) + 1)):
+				mem[loc | sum(1 << n for n in comb)] = int(val)
+	return sum(mem.values())
 
 
 def day15a(s):
