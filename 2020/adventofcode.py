@@ -704,11 +704,49 @@ def day18b(s):
 
 
 def day19a(s):
-	return ...
+	import nltk
+	rules, received = s.split('\n\n')
+	rules = sorted(rules.splitlines(),
+				key=lambda x: not x.startswith('0: '))
+	grammar = nltk.CFG.fromstring(
+			line.replace(':', ' ->', 1)
+			for line in rules)
+	parser = nltk.ChartParser(grammar)
+	result = 0
+	for n, line in enumerate(received.splitlines()):
+		res = parser.parse(list(line))
+		try:
+			_ = next(iter(res))
+			result += 1
+		except StopIteration:
+			pass
+		print(n, line)
+	return result
+
+
+def day19a(s):
+	def conv(rules):
+		for line in rules.splitlines():
+			lhs, rhs = line.split(':', 1)
+			for alt in rhs.split(' | '):
+				if '"' in alt:
+					yield (((lhs, 'Epsilon'), (alt.strip().strip('"'), )), 1)
+				else:
+					alt = tuple(alt.split())
+					yield (((lhs, ) + alt, (tuple(range(len(alt))), )), 1)
+
+	from discodop import containers, pcfg
+	rules, received = s.split('\n\n')
+	grammar = containers.Grammar(list(conv(rules)), start='0')
+	return sum(bool(pcfg.parse(list(line), grammar)[0])
+			for line in received.splitlines())
 
 
 def day19b(s):
-	return ...
+	# manually binarized
+	return day19a(
+			s.replace('8: 42\n', '8: 42 | 42 8\n'
+			).replace('11: 42 31\n', '11: 42 31 | 42 11x\n11x: 11 31\n'))
 
 
 def day20a(s):
