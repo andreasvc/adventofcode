@@ -6,7 +6,7 @@ import operator
 import itertools
 from functools import reduce
 from collections import Counter, defaultdict, deque
-# import numpy as np
+import numpy as np
 from numba import njit
 
 
@@ -750,7 +750,20 @@ def day19b(s):
 
 
 def day20a(s):
-	return ...
+	tiles = {
+			int(tile[:tile.index(':')].split()[1]):
+			np.array([[1 if char == '#' else 0 for char in line]
+				for line in tile[tile.index(':') + 2:].splitlines()])
+			for tile in s.split('\n\n')}
+	mapping = defaultdict(list)
+	for tileid, tile in tiles.items():
+		sides = [tile[:, 0], tile[:, -1], tile[0, :], tile[-1, :]]
+		sides = [min(list(s), list(s)[::-1]) for s in sides]
+		for s in sides:
+			mapping[tuple(s)].append(tileid)
+	# the 4 corners are the tiles with two unique sides
+	cnt = Counter(b[0] for b in mapping.values() if len(b) == 1)
+	return reduce(operator.mul, [a for a, b in cnt.items() if b == 2], 1)
 
 
 def day20b(s):
