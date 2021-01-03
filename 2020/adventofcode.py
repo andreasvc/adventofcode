@@ -496,19 +496,23 @@ def day15a(s):
 
 
 def day15b(s):
-	numbers = [int(a) for a in s.split(',')]
-	spoken = {a: n for n, a in enumerate(numbers)}
-	dist = {a: len(numbers) - n - 1 for n, a in enumerate(numbers)}
+	numbers = np.array([int(a) for a in s.split(',')], dtype=np.int32)
+	return _day15b(numbers)
+
+
+@njit
+def _day15b(numbers, goal=30_000_000):
+	spoken = np.zeros(goal + 1, dtype=np.int32)
+	for n, num in enumerate(numbers[:-1], 1):
+		spoken[num] = n
+	num = numbers[-1]
 	nn = len(numbers)
-	prev = numbers[-1]
-	goal = 30000000
 	while nn < goal:
-		num = dist[prev] if prev in dist else 0
-		dist[num] = nn - spoken[num] if num in spoken else 0
-		spoken[num] = nn
 		prev = num
+		num = 0 if spoken[num] == 0 else nn - spoken[num]
+		spoken[prev] = nn
 		nn += 1
-	return prev
+	return num
 
 
 def day16a(s):
