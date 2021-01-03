@@ -5,7 +5,7 @@ import sys
 import operator
 import itertools
 from functools import reduce
-from collections import Counter, defaultdict, deque
+from collections import Counter, defaultdict
 import numpy as np
 from numba import njit
 
@@ -767,7 +767,98 @@ def day20a(s):
 
 
 def day20b(s):
-	return ...
+	def parse(img):
+		return np.array([[1 if char == '#' else 0 for char in line]
+				for line in img.splitlines()], dtype=np.bool)
+
+	def vec(seq):  # convert a boolean vector to an integer
+		return min(
+				sum(1 << n for n, a in enumerate(seq) if a),
+				sum(1 << n for n, a in enumerate(seq[::-1]) if a))
+
+	def find(monster, im):
+		found = 0
+		for y in range(0, im.shape[0] - monster.shape[0]):
+			for x in range(0, im.shape[1] - monster.shape[1]):
+				part = im[y:y + monster.shape[0], x:x + monster.shape[1]]
+				if ((part & monster) == monster).all():
+					im[y:y + monster.shape[0], x:x + monster.shape[1]] &= ~(
+							monster)
+					found += 1
+		return found
+
+	tiles = {int(tile[:tile.index(':')].split()[1]):
+				parse(tile[tile.index(':') + 2:])
+			for tile in s.split('\n\n')}
+	mapping = defaultdict(set)
+	for tileid, tile in tiles.items():
+		for side in [tile[:, 0], tile[:, -1], tile[0, :], tile[-1, :]]:
+			mapping[vec(side)].add(tileid)
+	# the 4 corners are the tiles with two unique sides
+	cnt = Counter(next(iter(b)) for b in mapping.values() if len(b) == 1)
+	# pick an arbitrary corner as top left
+	corner = [a for a, b in cnt.items() if b == 2].pop()
+	tile = tiles[corner]
+	# find the right rotation: the right and bottom sides must have neighbors
+	for _ in range(4):
+		if (len(mapping[vec(tile[-1, :])]) == 2
+				and len(mapping[vec(tile[:, -1])]) == 2):
+			break
+		tile = np.rot90(tile)
+	# put tile at top left of result
+	ylen = tile.shape[0] - 2
+	xlen = tile.shape[1] - 2
+	xtiles = ytiles = int(len(tiles) ** 0.5)
+	im = np.zeros((ytiles * ylen, xtiles * xlen), dtype=np.bool)
+	empty = np.ones((ytiles * ylen, xtiles * xlen), dtype=np.bool)
+	im[:ylen, :xlen] = tile[1:-1, 1:-1]
+	empty[:ylen, :xlen] = np.zeros((ylen, xlen), dtype=np.bool)
+	xcur, ycur = xlen, 0
+	prev = tile
+	used = {corner}
+	# approach: spiral from outside in; always add new tiles to the right of
+	# previous tile; when a tile without right neighbor is reached
+	# (corner) or it already has a neighbor, change direction by rotating.
+	while True:
+		# does the previous tile have a neighbor that has not been placed?
+		while mapping[vec(prev[:, -1])] - used:
+			a, b = mapping[vec(prev[:, -1])]
+			match = a if b in used else b
+			tile = tiles[match]
+			# find the right rotation
+			for _ in range(4):
+				if (prev[:, -1] == tile[:, 0]).all():
+					break
+				elif (prev[:, -1] == tile[:, 0][::-1]).all():
+					tile = np.flipud(tile)
+					break
+				tile = np.rot90(tile)
+			# add to image
+			im[ycur:ycur + ylen, xcur:xcur + xlen] = tile[1:-1, 1:-1]
+			empty[ycur:ycur + ylen, xcur:xcur + xlen] = np.zeros((ylen, xlen),
+					dtype=np.bool)
+			xcur += xlen
+			prev = tile
+			used.add(match)
+		if len(used) == len(tiles):
+			break
+		# switch direction
+		im = np.rot90(im)
+		empty = np.rot90(empty)
+		prev = np.rot90(prev)
+		yy, xx = empty.nonzero()
+		ycur, xcur = yy[0], xx[0]
+
+	monster = parse(
+			'                  # \n'
+			'#    ##    ##    ###\n'
+			' #  #  #  #  #  #   \n')
+	for _ in range(2):
+		for _ in range(4):
+			if find(monster, im):
+				return im.sum()
+			im = np.rot90(im)
+		im = np.fliplr(im)
 
 
 def day21a(s):
