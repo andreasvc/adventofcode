@@ -894,11 +894,42 @@ def day21b(s):
 
 
 def day22a(s):
-	return ...
+	deck1, deck2 = s.split('\n\n')
+	deck1 = [int(a) for a in deck1.splitlines()[1:]]
+	deck2 = [int(a) for a in deck2.splitlines()[1:]]
+	while deck1 and deck2:
+		a, b = deck1.pop(0), deck2.pop(0)
+		if a > b:
+			deck1.extend(sorted([a, b], reverse=True))
+		else:
+			deck2.extend(sorted([a, b], reverse=True))
+	return sum(n * a for n, a in enumerate((deck1 or deck2)[::-1], 1))
 
 
 def day22b(s):
-	return ...
+	def subgame(deck1, deck2):
+		seen = set()
+		while deck1 and deck2:
+			if (tuple(deck1), tuple(deck2)) in seen:
+				deck2 = []
+				break
+			seen.add((tuple(deck1), tuple(deck2)))
+			a, b = deck1.pop(0), deck2.pop(0)
+			if len(deck1) >= a and len(deck2) >= b:
+				winner = subgame(deck1[:a].copy(), deck2[:b].copy())
+			else:
+				winner = a > b
+			if winner:
+				deck1.extend([a, b])
+			else:
+				deck2.extend([b, a])
+		return winner
+
+	deck1, deck2 = s.split('\n\n')
+	deck1 = [int(a) for a in deck1.splitlines()[1:]]
+	deck2 = [int(a) for a in deck2.splitlines()[1:]]
+	_winner = subgame(deck1, deck2)
+	return sum(n * a for n, a in enumerate((deck1 or deck2)[::-1], 1))
 
 
 def day23a(s):
