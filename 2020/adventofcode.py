@@ -861,12 +861,36 @@ def day20b(s):
 		im = np.fliplr(im)
 
 
+def day21(s):
+	ingredients = [set(line.split('(contains ')[0].split())
+			for line in s.splitlines()]
+	allergens = [set(line.split('(contains ')[1].rstrip(')').split(', '))
+			for line in s.splitlines()]
+	candidates = {aller: set(a)
+			for a, b in zip(ingredients, allergens)
+			for aller in b}
+	for a, b in zip(ingredients, allergens):
+		for aller in b:
+			candidates[aller] &= a
+	return ingredients, allergens, candidates
+
+
 def day21a(s):
-	return ...
+	ingredients, allergens, candidates = day21(s)
+	return len([ingr for a, b in zip(ingredients, allergens)
+			for ingr in a
+			if not any(ingr in x for x in candidates.values())])
 
 
 def day21b(s):
-	return ...
+	ingredients, allergens, candidates = day21(s)
+	while any(len(b) > 1 for b in candidates.values()):
+		for a, b in candidates.items():
+			if len(b) == 1:
+				for aa, bb in candidates.items():
+					if aa != a:
+						candidates[aa] -= b
+	return ','.join(next(iter(candidates[a])) for a in sorted(candidates))
 
 
 def day22a(s):
