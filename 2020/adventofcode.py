@@ -341,7 +341,6 @@ def day11b(s):
 def day12a(s):
 	x = y = 0
 	dirx, diry = 1, 0
-	print(x, y, dirx, diry)
 	for cmd in s.splitlines():
 		op, amount = cmd[0], int(cmd[1:])
 		if op == 'N':
@@ -369,14 +368,12 @@ def day12a(s):
 		elif op == 'F':
 			x += dirx * amount
 			y += diry * amount
-		print(cmd, x, y, dirx, diry)
 	return abs(x) + abs(y)
 
 
 def day12b(s):
 	x = y = 0
 	wpx, wpy = 10, -1
-	print(x, y, wpx, wpy)
 	for cmd in s.splitlines():
 		op, amount = cmd[0], int(cmd[1:])
 		if op == 'N':
@@ -404,7 +401,6 @@ def day12b(s):
 		elif op == 'F':
 			x += wpx * amount
 			y += wpy * amount
-		print(cmd, x, y, wpx, wpy)
 	return abs(x) + abs(y)
 
 
@@ -428,7 +424,6 @@ def day13b(s):
 		while not all((t + n) % a == 0 for n, a in zip(ind[:n], buses[:n])):
 			t += period
 		period = reduce(operator.mul, buses[:n], 1)
-		print(n, t, period, buses[:n])
 	return t
 
 
@@ -440,13 +435,7 @@ def _day13b():
 	# bus = [41, 37, 541, 23, 13, 17, 29, 983, 19]
 	period = 983
 	t = period - 72
-	printstep = 10_000_000_000_000
-	printcur = printstep
-
 	while True:
-		if t > printcur:
-			print(t)
-			printcur += printstep
 		if (
 				(t + 41) % 541 == 0
 				and t % 41 == 0
@@ -720,7 +709,6 @@ def day19a(s):
 			result += 1
 		except StopIteration:
 			pass
-		print(n, line)
 	return result
 
 
@@ -933,27 +921,137 @@ def day22b(s):
 
 
 def day23a(s):
-	return ...
+	cups = [int(a) for a in list(s.strip())]
+	mincup, maxcup = min(cups), max(cups)
+	for move in range(100):
+		pickup = cups[1:4]
+		cups[1:4] = []
+		dest = cups[0] - 1
+		while dest in pickup or dest < mincup:
+			dest -= 1
+			if dest < mincup:
+				dest = maxcup
+		idx = cups.index(dest)
+		cups[idx + 1:idx + 1] = pickup
+		cups = cups[1:] + cups[:1]
+	idx = cups.index(1)
+	cups = cups[idx + 1:] + cups[:idx]
+	return ''.join(str(a) for a in cups)
 
 
-def day23b(s):
-	return ...
+def day23b(s, maxcup=1_000_000):
+	start = np.array([int(a) for a in s.strip()], dtype=np.int32)
+	return _day23b(start)
+
+
+@njit
+def _day23b(start, maxcup=1_000_000):
+	# cups[cup] == nextcup
+	cups = np.zeros(maxcup + 1, dtype=np.int32)
+	for a, b in zip(start, start[1:]):
+		cups[a] = b
+	cups[start[-1]] = 10
+	for n in range(10, maxcup):
+		cups[n] = n + 1
+	cur = start[0]
+	cups[maxcup] = cur
+	for _ in range(10_000_000):
+		a = cups[cur]
+		b = cups[a]
+		c = cups[b]
+		dest = cur - 1
+		while dest == a or dest == b or dest == c or dest < 1:
+			dest -= 1
+			if dest < 1:
+				dest = maxcup
+		cups[cur], cups[dest], cups[c] = cups[c], a, cups[dest]
+		cur = cups[cur]
+	return int(cups[1]) * int(cups[cups[1]])
+
+
+def day24(s):
+	stepre = re.compile('(nw|ne|e|se|sw|w)')
+	state = {}
+	for line in s.splitlines():
+		x = y = z = 0
+		for step in stepre.findall(line):
+			if step == 'e':
+				x += 1
+				y -= 1
+			elif step == 'w':
+				x -= 1
+				y += 1
+			elif step == 'ne':
+				x += 1
+				z -= 1
+			elif step == 'nw':
+				y += 1
+				z -= 1
+			elif step == 'se':
+				y -= 1
+				z += 1
+			elif step == 'sw':
+				x -= 1
+				z += 1
+		state[x, y, z] = not state.get((x, y, z), 0)
+	return state
 
 
 def day24a(s):
-	return ...
+	state = day24(s)
+	return sum(state.values())
 
 
 def day24b(s):
-	return ...
+	def nbs(x, y, z):
+		return [(x + 1, y - 1, z), (x - 1, y + 1, z),
+				(x + 1, y, z - 1), (x, y + 1, z - 1),
+				(x, y - 1, z + 1), (x - 1, y, z + 1)]
+
+	state = day24(s)  # 0=white(default), 1=black
+	for day in range(100):
+		newstate = {}
+		for (x, y, z), val in state.items():
+			blacknbs = sum(state.get(nb, 0) for nb in nbs(x, y, z))
+			if val == 1:
+				newstate[x, y, z] = (0
+						if blacknbs == 0 or blacknbs > 2 else 1)
+			elif blacknbs == 2:
+				newstate[x, y, z] = 1
+			for nb in nbs(x, y, z):
+				if state.get(nb, 0) == 1:
+					continue
+				blacknbs = sum(state.get(nb1, 0) for nb1 in nbs(*nb))
+				if blacknbs == 2:
+					newstate[nb] = 1
+		state = newstate
+	return sum(state.values())
 
 
 def day25a(s):
-	return ...
+	def transform(subject):
+		val = 1
+		for n in itertools.count():
+			val *= subject
+			val %= 20201227
+			yield n + 1, val
+
+	a, b = s.splitlines()
+	cardpub, doorpub = int(a), int(b)
+	for n, val in transform(7):
+		if val == cardpub:
+			_n, secretkey = next(iter(itertools.islice(transform(doorpub),
+					n - 1, None)))
+			break
+		elif val == doorpub:
+			_n, secretkey = next(iter(itertools.islice(transform(cardpub),
+					n - 1, None)))
+			break
+	return secretkey
 
 
 def day25b(s):
-	return ...
+	"""There is no 25b."""
 
 
 def benchmark():
