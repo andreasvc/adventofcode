@@ -1,7 +1,9 @@
 """Advent of Code 2017. http://adventofcode.com/2017 """
 import re
 import sys
+import operator
 import itertools
+import functools
 from collections import Counter, defaultdict
 import numpy as np
 from numba import njit
@@ -23,14 +25,23 @@ def day1b(s):
 			return n
 
 
+def day2a(s):
+	return day2(s)[0]
+
+
+def day2b(s):
+	return day2(s)[1]
+
+
 def day2(s):
 	inp = [tuple(int(a) for a in line.split('x'))
 			for line in s.splitlines()]
 	paper = ribbon = 0
-	for l, w, h in inp:
-		sides = [l * w, w * h, h * l]
+	for length, width, height in inp:
+		sides = [length * width, width * height, height * length]
 		paper += 2 * sum(sides) + min(sides)
-		ribbon += 2 * min((l + w, w + h, h + l)) + l * w * h
+		ribbon += 2 * min((length + width, width + height, height + length)
+				) + length * width * height
 	return paper, ribbon
 
 
@@ -129,14 +140,17 @@ def day6b(s):
 	return lights.sum().sum()
 
 
-def day7(s):
+def day7(s, overrideb=None):
 	x = {'0': 0, '1': 1}
 	lines = s.splitlines()
 	while lines:
 		for n, line in enumerate(lines):
 			f = line.split()
 			if f[1] == '->' and f[0].isnumeric():
-				x[f[2]] = int(f[0])
+				if overrideb is not None and f[2] == 'b':
+					x['b'] = overrideb
+				else:
+					x[f[2]] = int(f[0])
 			elif f[1] == '->' and f[0].isalpha() and f[0] in x:
 				x[f[2]] = x[f[0]]
 			elif f[1] == 'AND' and f[0] in x and f[2] in x:
@@ -160,25 +174,29 @@ def day7a(s):
 	return day7(s)['a']
 
 
+def day7b(s):
+	return day7(s, overrideb=day7(s)['a'])['a']
+
+
 def day8a(s):
 	return sum(
-		len(l) - len(re.sub(r'\\\\|\\"|\\[x]..', '.', l[1:-1]))
-		for l in s.splitlines())
+		len(line) - len(re.sub(r'\\\\|\\"|\\[x]..', '.', line[1:-1]))
+		for line in s.splitlines())
 
 
 def day8b(s):
-	return sum(2 + l.count('"') + l.count('\\')
-			for l in s.splitlines())
+	return sum(2 + line.count('"') + line.count('\\')
+			for line in s.splitlines())
 
 
 def day9(s, func):
 	dists = {(f[0], f[2]): int(f[4]) for f in
-			(l.split() for l in s.splitlines())}
+			(line.split() for line in s.splitlines())}
 	for a, b in list(dists):
 		dists[b, a] = dists[a, b]
 	places = {a for a, _ in dists}
 	return func(
-		(sum(dists[a, b] for a, b in zip(x, x[1:])), x)
+		sum(dists[a, b] for a, b in zip(x, x[1:]))
 		for x in itertools.permutations(places, len(places)))
 
 
@@ -245,20 +263,27 @@ def day12b(s):
 	return traverse(json.loads(s))
 
 
-def day13(s):
-	def solve(data, names):
-		return max(
-				sum(data.get((a, b), 0) for a, b in zip(perm, perm[1:]))
-				for perm in
-					(perm + perm[0:1] + perm[::-1] for perm
-					in itertools.permutations(names, len(names))))
+def day13a(s):
+	return day13(s)
 
+
+def day13b(s):
+	return day13(s, includeself=True)
+
+
+def day13(s, includeself=False):
 	data = {(fields[0], fields[-1]):
 				int(fields[3]) if fields[2] == 'gain' else -int(fields[3])
 			for fields in
 			(line.rstrip('.').split() for line in s.splitlines())}
 	names = {a for a, _ in data}
-	return solve(data, names), solve(data, names | {'yourself'})
+	if includeself:
+		names.add('yourself')
+	return max(
+			sum(data.get((a, b), 0) for a, b in zip(perm, perm[1:]))
+			for perm in
+				(perm + perm[0:1] + perm[::-1] for perm
+				in itertools.permutations(names, len(names))))
 
 
 def day14a(s):
@@ -269,10 +294,6 @@ def day14a(s):
 			((duration // (flytime + resttime)) * speed * flytime)
 			+ min(duration % (flytime + resttime), flytime) * speed
 			for name, (speed, flytime, resttime) in data.items())
-
-
-def day14btest(s):
-	return day14b(s, 1000)
 
 
 def day14b(s, duration=2503):
@@ -308,8 +329,7 @@ def day15a(s):
 			for name, fields in
 			(line.split(':', 1) for line in s.splitlines())}
 	return max(
-			(squashandmult(sum(data[elem] for elem in comb)),
-				list(Counter(comb).values()))
+			squashandmult(sum(data[elem] for elem in comb))
 			for comb in itertools.combinations_with_replacement(
 				data.keys(), 100))
 
@@ -324,8 +344,7 @@ def day15b(s):
 			for name, fields in
 			(line.split(':', 1) for line in s.splitlines())}
 	return max(
-			(squashandmult(sum(data[elem][:-1] for elem in comb)),
-				list(Counter(comb).values()))
+			squashandmult(sum(data[elem][:-1] for elem in comb))
 			for comb in itertools.combinations_with_replacement(
 				data.keys(), 100)
 			if sum(data[elem][-1] for elem in comb) == 500)
@@ -451,7 +470,6 @@ def day19b(s):
 				for m in re.finditer(b, mol):
 					new.add(mol[:m.start()] + a + mol[m.end():])
 		cur = {min(new, key=lambda x: len(x))}
-		print(generation, cur)
 		if 'e' in cur:
 			return generation
 
@@ -476,6 +494,208 @@ def day20b(s):
 	for n in range(len(houses)):
 		if houses[n] >= goal:
 			return n
+
+
+def day21(s):
+	def play(me, boss):
+		while True:
+			boss['Hit Points'] -= max(1, me['Damage'] - boss['Armor'])
+			if boss['Hit Points'] <= 0:
+				return True
+			me['Hit Points'] -= max(1, boss['Damage'] - me['Armor'])
+			if me['Hit Points'] <= 0:
+				return False
+
+	def parse(items):
+		return [np.array([int(a) for a in line.split()[1:]], dtype=int)
+				for line in items.splitlines()]
+
+	boss = dict(zip(
+			[line.split(':')[0] for line in s.splitlines()],
+			[int(line.split(':')[1]) for line in s.splitlines()]))
+	me = {'Hit Points': 100, 'Damage': 0, 'Armor': 0}
+	# Weapons:    Cost  Damage  Armor
+	weapons = parse("""Dagger        8     4       0
+	Shortsword   10     5       0
+	Warhammer    25     6       0
+	Longsword    40     7       0
+	Greataxe     74     8       0""")
+
+	# Armor:      Cost  Damage  Armor
+	armor = parse("""Leather      13     0       1
+	Chainmail    31     0       2
+	Splintmail   53     0       3
+	Bandedmail   75     0       4
+	Platemail   102     0       5""")
+
+	# Rings:      Cost  Damage  Armor
+	rings = parse("""Damage+1    25     1       0
+	Damage+2    50     2       0
+	Damage+3   100     3       0
+	Defense+1   20     0       1
+	Defense+2   40     0       2
+	Defense+3   80     0       3""")
+	candidates = []
+	for weapon in weapons:
+		for arm in armor:
+			for comb in itertools.chain(
+					[()],
+					itertools.combinations(rings, 1),
+					itertools.combinations(rings, 2)):
+				candidate = weapon + arm
+				if len(comb):
+					candidate += comb[0]
+				if len(comb) == 2:
+					candidate += comb[1]
+				candidates.append(candidate)
+	candidates.sort(key=lambda x: x[0])
+	for cand in candidates:
+		x = me.copy()
+		x['Damage'] += cand[1]
+		x['Armor'] += cand[2]
+		if play(x, boss.copy()):
+			ans1 = cand[0]
+			break
+	for cand in candidates[::-1]:
+		x = me.copy()
+		x['Damage'] += cand[1]
+		x['Armor'] += cand[2]
+		if not play(x, boss.copy()):
+			ans2 = cand[0]
+			break
+	return ans1, ans2
+
+
+def play22(spells, boss, hard=False):
+	myhp = 50
+	mana = 500
+	manaspent = 0
+	armor = np.zeros(2 * len(spells), dtype=int)
+	damage = np.zeros(2 * len(spells), dtype=int)
+	recharge = np.zeros(2 * len(spells), dtype=int)
+	cost = {'missile': 53, 'drain': 73, 'shield': 113, 'poison': 173,
+			'recharge': 229}
+	n = 0
+	for spell in spells:
+		# our turn
+		if hard:
+			myhp -= 1
+			if myhp <= 0:
+				return False
+		if mana < cost[spell]:
+			return False
+		mana -= cost[spell]
+		manaspent += cost[spell]
+		if spell == 'missile':
+			damage[n] += 4
+		elif spell == 'drain':
+			damage[n] += 2
+			myhp += 2
+		elif spell == 'shield' and armor[n + 1] == 0:
+			armor[n + 1:n + 7] += 7
+		elif spell == 'poison' and damage[n + 1] == 0:
+			damage[n + 1:n + 7] += 3
+		elif spell == 'recharge' and recharge[n + 1] == 0:
+			recharge[n + 1:n + 6] += 101
+		else:
+			return False  # spell was applied while still active
+		boss['Hit Points'] -= damage[n]
+		if boss['Hit Points'] <= 0:
+			return manaspent
+		mana += recharge[n]
+		n += 1
+		# boss turn
+		mana += recharge[n]
+		boss['Hit Points'] -= damage[n]
+		if boss['Hit Points'] <= 0:
+			return manaspent
+		myhp -= max(1, boss['Damage'] - armor[n])
+		if myhp <= 0:
+			return False
+		n += 1
+
+
+def day22(s):
+	boss = dict(zip(
+			[line.split(':')[0] for line in s.splitlines()],
+			[int(line.split(':')[1]) for line in s.splitlines()]))
+	spells = 'missile drain shield poison recharge'.split()
+	ans1, ans2 = [], []
+	for size in range(9):
+		for comb in itertools.product(spells, repeat=size):
+			m = play22(comb, boss.copy())
+			if m:
+				ans1.append(m)
+			m = play22(comb, boss.copy(), hard=True)
+			if m:
+				ans2.append(m)
+				break
+	return min(ans1), min(ans2)
+
+
+def _day23(s, a=0):
+	pc = 0
+	state = {'a': a, 'b': 0}
+	prog = s.splitlines()
+	while 0 <= pc < len(prog):
+		op, arg = prog[pc].split(None, 1)
+		if ',' in arg:
+			arg, offset = arg.split(',')
+		if op == 'hlf':
+			state[arg] //= 2
+		elif op == 'tpl':
+			state[arg] *= 3
+		elif op == 'inc':
+			state[arg] += 1
+		elif op == 'jmp':
+			pc += int(arg)
+			continue
+		elif op == 'jie':
+			if (state[arg] & 1) == 0:
+				pc += int(offset)
+				continue
+		elif op == 'jio':
+			if state[arg] == 1:
+				pc += int(offset)
+				continue
+		pc += 1
+	return state['b']
+
+
+def day23(s):
+	return _day23(s, 0), _day23(s, 1)
+
+
+def _day24(s, groups=3):
+	weights = [int(a) for a in s.splitlines()]
+	goal = sum(weights) // groups
+	for size in range(2, len(weights)):
+		result = [comb for comb in itertools.combinations(weights, size)
+				if sum(comb) == goal]
+		if result:
+			break
+	return min([functools.reduce(operator.mul, a, 1) for a in result])
+
+
+def day24(s):
+	return _day24(s, 3), _day24(s, 4)
+
+
+def day25(s):
+	goalcol = int(s.split()[-1].strip('.'))
+	goalrow = int(s.split()[-3].strip(','))
+	col = row = 1
+	cur = 20151125
+	while True:
+		cur = cur * 252533 % 33554393
+		if row > 1:
+			row -= 1
+			col += 1
+		else:
+			row = col + 1
+			col = 1
+		if col == goalcol and row == goalrow:
+			return cur
 
 
 # -------8<-------- Tests  -------8<--------
@@ -514,6 +734,13 @@ def test8():
 "\x27"''') == 12
 
 
+def test14b():
+	s = """\
+Comet can fly 14 km/s for 10 seconds, but then must rest for 127 seconds.
+Dancer can fly 16 km/s for 11 seconds, but then must rest for 162 seconds."""
+	assert day14b(s, 1000) == 689
+
+
 def benchmark():
 	import timeit
 	for n in range(1, 25 + 1):
@@ -533,11 +760,12 @@ def main():
 	if len(sys.argv) > 1 and sys.argv[1] == 'benchmark':
 		benchmark()
 	elif len(sys.argv) > 1 and sys.argv[1].startswith('day'):
-		inp = sys.stdin if len(sys.argv) == 2 else open(sys.argv[2])
-		print(globals()[sys.argv[1]](inp.read().rstrip('\n')))
+		with open('i' + sys.argv[1][3:].rstrip('ab') if len(sys.argv) == 2
+				else sys.argv[2]) as inp:
+			print(globals()[sys.argv[1]](inp.read().rstrip('\n')))
 	else:
 		raise ValueError('unrecognized command. '
-				'usage: python3 adventofcode.py day[1-25][ab] < input'
+				'usage: python3 adventofcode.py day[1-25][ab] [input]'
 				'or: python3 adventofcode.py benchmark')
 
 
