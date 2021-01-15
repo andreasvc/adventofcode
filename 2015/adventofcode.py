@@ -496,7 +496,7 @@ def day20b(s):
 			return n
 
 
-def day21(s):
+def _day21(s, reverse=False):
 	def play(me, boss):
 		while True:
 			boss['Hit Points'] -= max(1, me['Damage'] - boss['Armor'])
@@ -549,24 +549,26 @@ def day21(s):
 					candidate += comb[1]
 				candidates.append(candidate)
 	candidates.sort(key=lambda x: x[0])
-	for cand in candidates:
+	for cand in candidates[::-1] if reverse else candidates:
 		x = me.copy()
 		x['Damage'] += cand[1]
 		x['Armor'] += cand[2]
-		if play(x, boss.copy()):
-			ans1 = cand[0]
-			break
-	for cand in candidates[::-1]:
-		x = me.copy()
-		x['Damage'] += cand[1]
-		x['Armor'] += cand[2]
-		if not play(x, boss.copy()):
-			ans2 = cand[0]
-			break
-	return ans1, ans2
+		result = play(x, boss.copy())
+		if not reverse and result:
+			return cand[0]
+		elif reverse and not result:
+			return cand[0]
 
 
-def play22(spells, boss, hard=False):
+def day21a(s):
+	return _day21(s)
+
+
+def day21b(s):
+	return _day21(s, reverse=True)
+
+
+def _day22(spells, boss, hard=False):
 	myhp = 50
 	mana = 500
 	manaspent = 0
@@ -615,7 +617,20 @@ def play22(spells, boss, hard=False):
 		n += 1
 
 
-def day22(s):
+def day22a(s):
+	boss = dict(zip(
+			[line.split(':')[0] for line in s.splitlines()],
+			[int(line.split(':')[1]) for line in s.splitlines()]))
+	spells = 'missile drain shield poison recharge'.split()
+	result = []
+	for size in range(9):
+		for comb in itertools.product(spells, repeat=size):
+			m = _day22(comb, boss.copy())
+			if m:
+				return m
+
+
+def day22b(s):
 	boss = dict(zip(
 			[line.split(':')[0] for line in s.splitlines()],
 			[int(line.split(':')[1]) for line in s.splitlines()]))
@@ -623,14 +638,9 @@ def day22(s):
 	ans1, ans2 = [], []
 	for size in range(9):
 		for comb in itertools.product(spells, repeat=size):
-			m = play22(comb, boss.copy())
+			m = _day22(comb, boss.copy(), hard=True)
 			if m:
-				ans1.append(m)
-			m = play22(comb, boss.copy(), hard=True)
-			if m:
-				ans2.append(m)
-				break
-	return min(ans1), min(ans2)
+				return m
 
 
 def _day23(s, a=0):
@@ -662,8 +672,12 @@ def _day23(s, a=0):
 	return state['b']
 
 
-def day23(s):
-	return _day23(s, 0), _day23(s, 1)
+def day23a(s):
+	return _day23(s, 0)
+
+
+def day23b(s):
+	return _day23(s, 1)
 
 
 def _day24(s, groups=3):
@@ -677,11 +691,15 @@ def _day24(s, groups=3):
 	return min([functools.reduce(operator.mul, a, 1) for a in result])
 
 
-def day24(s):
-	return _day24(s, 3), _day24(s, 4)
+def day24a(s):
+	return _day24(s, 3)
 
 
-def day25(s):
+def day24b(s):
+	return _day24(s, 4)
+
+
+def day25a(s):
 	goalcol = int(s.split()[-1].strip('.'))
 	goalrow = int(s.split()[-3].strip(','))
 	col = row = 1
@@ -696,6 +714,10 @@ def day25(s):
 			col = 1
 		if col == goalcol and row == goalrow:
 			return cur
+
+
+def day25b(s):
+	"""There is no 25b."""
 
 
 # -------8<-------- Tests  -------8<--------
