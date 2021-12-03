@@ -48,6 +48,33 @@ def day2b(s):
 	return horiz * depth
 
 
+def day3a(s):
+	lines = s.splitlines()
+	threshold = len(lines) // 2
+	counts = [0] * len(lines[0])
+	for line in lines:
+		for n, a in enumerate(line):
+			counts[n] += a == '1'
+	gamma = ''.join('1' if a >= threshold else '0' for a in counts)
+	epsilon = ''.join('1' if a < threshold else '0' for a in counts)
+	return int(gamma, base=2) * int(epsilon, base=2)
+
+
+def day3b(s):
+	result = []
+	for x in range(2):
+		lines = s.splitlines()
+		n = 0
+		while len(lines) > 1:
+			count = sum(int(line[n]) for line in lines)
+			threshold = len(lines) // 2 + (len(lines) % 2 != 0)
+			bit = (count >= threshold) == (x == 0)
+			lines = [line for line in lines if int(line[n]) == bit]
+			n += 1
+		result.append(int(lines[0], base=2))
+	return result[0] * result[1]
+
+
 def benchmark():
 	import timeit
 	for name in list(globals()):
