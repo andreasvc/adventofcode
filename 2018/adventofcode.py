@@ -315,28 +315,38 @@ def day11b(s):
 	return '%d,%d,%d' % _day11b(*day11(s))
 
 
-def day12a(s):
-	padding = 25
+def _day12(s, gens=20):
+	padding = 300
 	state = np.array([0] * padding + [a == '#'
 			for a in s.splitlines()[0].split(': ')[1]] + [0] * padding,
-			dtype=np.bool)
+			dtype=bool)
 	rules = np.array([[a == '#' for a in line.replace(' => ', '')]
 			for line in s.splitlines()[2:]],
-			dtype=np.bool)
-	print(' 0: %s' % ''.join('.#'[a] for a in state))
-	for gen in range(1, 21):
-		newstate = np.zeros(len(state), dtype=np.bool)
+			dtype=bool)
+	result = np.zeros(gens, dtype=int)
+	for gen in range(1, gens + 1):
+		newstate = np.zeros(len(state), dtype=bool)
 		for n in range(2, len(state) - 2):
 			for rule in rules:
 				if (state[n - 2:n + 3] == rule[:5]).all():
 					newstate[n] = rule[5]
 					break
 		state = newstate
-		print('%2d: %s' % (gen, ''.join('.#'[a] for a in state)))
-	for n, a in enumerate(state, -padding):
-		if a:
-			print(n)
-	return sum(n for n, a in enumerate(state, -padding) if a)
+		result[gen - 1] = sum(n for n, a in enumerate(state, -padding) if a)
+	return result
+
+
+def day12a(s):
+	result = _day12(s, gens=20)
+	return result[-1]
+
+
+def day12b(s):
+	# after 200 cycles, there is a constant increase
+	result = _day12(s, gens=200)
+	base = result[-1]
+	diff = result[-1] - result[-2]
+	return base + (50_000_000_000 - 200) * diff
 
 
 def day13(s):
@@ -438,11 +448,22 @@ def day14b(s):
 			return len(states) - 6
 
 
+def day15a(s):
+	state = [list(line) for line in s.splitlines()]
+	# cave = [['#' if a == '#' else '.' for a in line]
+	# 		for line in s.splitlines()]
+	rounds = 0
+	hitpoints = [s.count('E') * 200, s.count('G') * 200]
+	while (any(x == 'E' for line in state for x in line)
+			and any(x == 'G' for line in state for x in line)):
+		...
+		rounds += 1
+	return rounds * max(hitpoints)
+
+
 def day16(s):
 	samples, program = s.split('\n\n\n')
-	before = []
-	after = []
-	instruction = []
+	before, after, instruction = [], [], []
 	for chunk in samples.split('\n\n'):
 		a, b, c = chunk.splitlines()
 		a = [int(x) for x in a.split(':')[1].strip(' []').split(', ')]
@@ -504,62 +525,143 @@ def day16a(s):
 
 def day16b(s):
 	possible, instruction = day16(s)
-	opcodetbl = {}
 	ops = {op for op, _, _, _ in instruction}
+	opcodes = [None] * len(ops)
 	while not all(len(a) == 1 for a in possible):
 		for op in ops:
 			x = [a for a, (op1, _, _, _)
 					in zip(possible, instruction) if op1 == op]
-			result = x[0]
-			result.intersection_update(*x[1:])
+			result = x[0].intersection(*x[1:])
 			if len(result) == 1:
-				opcodetbl[next(iter(result))] = op
+				opcodes[op] = next(iter(result))
 				for a, (op1, _, _, _) in zip(possible, instruction):
 					if op1 == op:
 						a &= result
 					else:
 						a -= result
-	opcodes = sorted(opcodetbl, key=opcodetbl.get)
 	reg = [0] * 4
 	_, program = s.split('\n\n\n')
-	for line in program.splitlines():
-		if not line.strip():
-			continue
+	for line in program.strip().splitlines():
 		op, val1, val2, out = [int(a) for a in line.split()]
 		op = opcodes[op]
-		if op == 'seti':
+		if op.endswith('ri'):
+			val1 = reg[val1]
+		elif op.endswith('ir'):
+			val2 = reg[val2]
+		elif op.endswith('r'):
+			val1 = reg[val1]
+			val2 = reg[val2]
+		elif op != 'seti':
+			val1 = reg[val1]
+		if op.startswith('set'):
 			reg[out] = val1
-		elif op == 'gtir':
-			reg[out] = int(val1 > reg[val2])
-		elif op == 'eqir':
-			reg[out] = int(val1 == reg[val2])
-		elif op == 'gtri':
-			reg[out] = int(reg[val1] > val2)
-		elif op == 'eqri':
-			reg[out] = int(reg[val1] == val2)
-		elif op == 'gtrr':
-			reg[out] = int(reg[val1] > reg[val2])
-		elif op == 'eqrr':
-			reg[out] = int(reg[val1] == reg[val2])
-		elif op == 'addi':
-			reg[out] = reg[val1] + val2
-		elif op == 'muli':
-			reg[out] = reg[val1] * val2
-		elif op == 'bani':
-			reg[out] = reg[val1] & val2
-		elif op == 'bori':
-			reg[out] = reg[val1] | val2
-		elif op == 'setr':
-			reg[out] = reg[val1]
-		elif op == 'addr':
-			reg[out] = reg[val1] + reg[val2]
-		elif op == 'mulr':
-			reg[out] = reg[val1] * reg[val2]
-		elif op == 'banr':
-			reg[out] = reg[val1] & reg[val2]
-		elif op == 'borr':
-			reg[out] = reg[val1] | reg[val2]
+		elif op.startswith('gt'):
+			reg[out] = int(val1 > val2)
+		elif op.startswith('eq'):
+			reg[out] = int(val1 == val2)
+		elif op.startswith('add'):
+			reg[out] = val1 + val2
+		elif op.startswith('mul'):
+			reg[out] = val1 * val2
+		elif op.startswith('ban'):
+			reg[out] = val1 & val2
+		elif op.startswith('bor'):
+			reg[out] = val1 | val2
 	return reg[0]
+
+
+def _day18(s, minutes=10):
+	area = np.array(
+			[['.|#'.index(a) for a in line]
+				for line in s.splitlines()],
+			dtype=np.int8)
+	width = len(area)
+	result = np.zeros(minutes, dtype=int)
+	for n in range(minutes):
+		new = area.copy()
+		for a in range(width):
+			for b in range(width):
+				nb = [(a + dx, b + dy)
+						for dx in (-1, 0, 1)
+							for dy in (-1, 0, 1)
+						if 0 <= (a + dx) < width and 0 <= (b + dy) < width
+						and (dx != 0 or dy != 0)]
+				nb1, nb2 = [x for x, _ in nb], [y for _, y in nb]
+				if area[a, b] == 0:
+					if (area[nb1, nb2] == 1).sum() >= 3:
+						new[a, b] = 1
+				elif area[a, b] == 1:
+					if (area[nb1, nb2] == 2).sum() >= 3:
+						new[a, b] = 2
+				elif area[a, b] == 2:
+					if ((area[nb1, nb2] == 2).sum() >= 1
+							and (area[nb1, nb2] == 1).sum() >= 1):
+						new[a, b] = 2
+					else:
+						new[a, b] = 0
+		area = new
+		result[n] = (area.ravel() == 1).sum() * (area.ravel() == 2).sum()
+	return result
+
+
+def day18a(s):
+	return _day18(s)[-1]
+
+
+def day18b(s):
+	result = _day18(s, minutes=600)
+	ind = defaultdict(list)
+	for n, a in enumerate(result):
+		ind[a].append(n)
+	period = ind[result[500]][1] - ind[result[500]][0]
+	goal = 1_000_000_000
+	return result[500 + ((goal - 500) % period) - 1]
+
+
+def day23a(s):
+	bots = np.array([
+			[int(a) for a in re.findall(r'-?\d+', line)]
+				for line in s.splitlines()],
+			dtype=np.int64)
+	i = bots[:, 3].argmax()
+	return (np.abs(bots[i, 0:3] - bots[:, 0:3]).sum(axis=1) <= bots[i, 3]).sum()
+
+
+def day23b(s):
+	def numinrange(x, y, z):
+		"""Return number of bots in range."""
+		coord = np.array([x, y, z], dtype=np.int64)
+		return sum(np.abs(coord - bots[i, 0:3]).sum() <= bots[i, 3]
+				for i in range(bots.shape[0]))
+
+	def breakties(x):
+		"""Return number of bots in range, and dist to origin."""
+		return x[0], -(abs(x[1]) + abs(x[2]) + abs(x[3]))
+
+	bots = np.array([
+			[int(a) for a in re.findall(r'-?\d+', line)]
+				for line in s.splitlines()],
+			dtype=np.int64)
+	x1, y1, z1, _ = bots.min(axis=0)
+	x2, y2, z2, _ = bots.max(axis=0)
+	while (x2 - x1 > 1 or y2 - y1 > 1 or z2 - z1 > 1):
+		xd = (x2 - x1) // 4
+		yd = (y2 - y1) // 4
+		zd = (z2 - z1) // 4
+		results = [
+				(numinrange(x, y, z), x, y, z)
+				for x in [x1 + xd, x1 + xd + xd, x2 - xd]
+				for y in [y1 + yd, y1 + yd + yd, y2 - yd]
+				for z in [z1 + zd, z1 + zd + zd, z2 - zd]]
+		res, x, y, z = max(results, key=breakties)
+		x1, x2 = x - xd, x + xd
+		y1, y2 = y - yd, y + yd
+		z1, z2 = z - zd, z + zd
+		print(res,
+				x - xd, x + xd,
+				y - yd, y + yd,
+				z - zd, z + zd)
+	return abs(x) + abs(y) + abs(z)
 
 
 def benchmark():
