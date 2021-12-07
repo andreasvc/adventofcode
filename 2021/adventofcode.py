@@ -148,7 +148,7 @@ def day6(s, days=80):
 	for a in [int(a) for a in s.split(',')]:
 		x[a] += 1
 	for _ in range(days):
-		x = x[1:] + [x[0]]
+		x = x[1:] + x[:1]
 		x[6] += x[8]
 	return sum(x)
 
@@ -159,6 +159,20 @@ def day6a(s):
 
 def day6b(s):
 	return day6(s, 256)
+
+
+def day7a(s):
+	nums = np.array([int(a) for a in s.split(',')])
+	return min([
+		np.abs(nums - n).sum()
+		for n in range(min(nums), max(nums) + 1)])
+
+
+def day7b(s):
+	nums = np.array([int(a) for a in s.split(',')])
+	return min([
+		sum((x * (x + 1)) // 2 for x in np.abs(nums - n))
+		for n in range(min(nums), max(nums) + 1)])
 
 
 def benchmark():
