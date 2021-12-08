@@ -5,7 +5,7 @@ import sys
 # import operator
 # import itertools
 # from functools import reduce
-# from collections import Counter, defaultdict
+from collections import Counter  #, defaultdict
 import numpy as np
 # from numba import njit
 
@@ -173,6 +173,63 @@ def day7b(s):
 	return min([
 		sum((x * (x + 1)) // 2 for x in np.abs(nums - n))
 		for n in range(min(nums), max(nums) + 1)])
+
+
+def day8a(s):
+	lines = [[a.split() for a in line.split(' | ')]
+			for line in s.splitlines()]
+	return sum(1
+			for line in lines
+			for a in line[1]
+			if len(a) in (2, 3, 4, 7))
+
+
+def day8b(s):
+	lines = [[[frozenset(x) for x in a.split()]
+			for a in line.split(' | ')]
+			for line in s.splitlines()]
+	digits = {   # segments                num missing
+			1: set('  c  f ') - set(' '),  # 2 abdeg
+			7: set('a c  f ') - set(' '),  # 3 bdeg
+			4: set(' bcd f ') - set(' '),  # 4 aeg
+			2: set('a cde g') - set(' '),  # 5 bf
+			3: set('a cd fg') - set(' '),  # 5 be
+			5: set('ab d fg') - set(' '),  # 5 ce
+			6: set('ab defg') - set(' '),  # 6 c
+			0: set('abc efg') - set(' '),  # 6 d
+			9: set('abcd fg') - set(' '),  # 6 e
+			8: set('abcdefg') - set(' '),  # 7 {}
+			#       8687497  <-- segment counts
+			}
+	lenmap = {2: 1, 3: 7, 4: 4, 7: 8}  # lengths that map to unique digits
+	countmap = {4: 'e', 6: 'b', 9: 'f'}  # unique segment counts -> segments
+	result = 0
+	for signals, output in lines:
+		# possible mappings for each letter: original -> possible new letters
+		poss = {letter: set('abcdefg') for letter in 'abcdefg'}
+		cnt = Counter()
+		for signal in signals:
+			cnt.update(signal)
+			if len(signal) in lenmap:
+				d = lenmap[len(signal)]
+				for letter in digits[d]:
+					poss[letter] &= signal
+				for letter in poss.keys() - digits[d]:
+						poss[letter] -= signal
+		for letter, c in cnt.items():
+			if c in countmap:
+				newletter = countmap[c]
+				poss[newletter] = {letter}
+				for a in poss:
+					if a != newletter:
+						poss[a] -= {letter}
+		assert all(len(a) == 1 for a in poss.values())
+		poss = {a: c for a, b in poss.items() for c in b}
+		mapping = {frozenset(poss[a] for a in letters): d
+				for d, letters in digits.items()}
+		result += int(''.join(str(mapping[a]) for a in output))
+	return result
+
 
 
 def benchmark():
