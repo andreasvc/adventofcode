@@ -117,18 +117,18 @@ def day4b(s):
 				boards[n] = None
 
 
-def day5(s, diagonals=True):
+def _day5(s, diagonals=True):
 	lines = np.array([[int(a) for a in re.findall(r'\d+', line)]
 			for line in s.splitlines()], dtype=int)
 	size = lines.flatten().max() + 1
 	grid = np.zeros((size, size), dtype=int)
 	for n in range(lines.shape[0]):
 		x1, y1, x2, y2 = lines[n, :]
-		xd = 1 if x2 >= x1 else - 1
-		yd = 1 if y2 >= y1 else - 1
-		x, y = x1, y1
-		for m in range(max(abs(x2 - x1), abs(y2 - y1)) + 1):
-			if diagonals or x1 == x2 or y1 == y2:
+		if diagonals or x1 == x2 or y1 == y2:
+			xd = 1 if x2 >= x1 else - 1
+			yd = 1 if y2 >= y1 else - 1
+			x, y = x1, y1
+			for m in range(max(abs(x2 - x1), abs(y2 - y1)) + 1):
 				grid[y, x] += 1
 				x += xd * (x1 != x2)
 				y += yd * (y1 != y2)
@@ -136,11 +136,11 @@ def day5(s, diagonals=True):
 
 
 def day5a(s):
-	return day5(s, diagonals=False)
+	return _day5(s, diagonals=False)
 
 
 def day5b(s):
-	return day5(s, diagonals=True)
+	return _day5(s, diagonals=True)
 
 
 def day6(s, days=80):
@@ -169,10 +169,14 @@ def day7a(s):
 
 
 def day7b(s):
+	def triangle(x):
+		return x * (x + 1) // 2
+
 	nums = np.array([int(a) for a in s.split(',')])
+	mean = nums.mean()
 	return min([
-		sum((x * (x + 1)) // 2 for x in np.abs(nums - n))
-		for n in range(min(nums), max(nums) + 1)])
+		triangle(np.abs(nums - n)).sum()
+		for n in (round(mean - 0.5), round(mean + 0.5))])
 
 
 def day8a(s):
@@ -231,6 +235,41 @@ def day8b(s):
 	return result
 
 
+def day9a(s):
+	grid = np.array([[int(a) for a in line] for line in s.splitlines()],
+			dtype=int)
+	ymax, xmax = grid.shape
+	result = 0
+	for y in range(ymax):
+		for x in range(xmax):
+			if all(grid[y, x] < grid[y + yd, x + xd]
+					for yd, xd in ((-1, 0), (0, 1), (0, -1), (1, 0))
+					if 0 <= y + yd < ymax and 0 <= x + xd < xmax):
+				result += grid[y, x] + 1
+	return result
+
+
+def day9b(s):
+	from scipy.cluster.hierarchy import DisjointSet
+	grid = np.array([[int(a) for a in line] for line in s.splitlines()],
+			dtype=int)
+	ymax, xmax = grid.shape
+	loc = [(y, x) for y in range(ymax)
+			for x in range(xmax)
+			if grid[y, x] < 9]
+	basins = DisjointSet(loc)
+	for y, x in loc:
+		neighbors = [(grid[y + yd, x + xd], y + yd, x + xd)
+				for yd, xd in ((-1, 0), (0, 1), (0, -1), (1, 0))
+				if 0 <= y + yd < ymax and 0 <= x + xd < xmax
+					and grid[y, x] < 9]
+		val, yy, xx = min(neighbors, default=(999, -1, -1))
+		if grid[y, x] > val:
+			basins.merge((y, x), (yy, xx))
+	a, b, c = sorted(basins.subsets(), key=len)[-3:]
+	return len(a) * len(b) * len(c)
+
+
 
 def benchmark():
 	import timeit
@@ -254,8 +293,8 @@ def main():
 				else sys.argv[2]) as inp:
 			print(globals()[sys.argv[1]](inp.read().rstrip('\n')))
 	else:
-		raise ValueError('unrecognized command. '
-				'usage: python3 adventofcode.py day[1-25][ab] [input]'
+		print('unrecognized command.\n'
+				'usage: python3 adventofcode.py day[1-25][ab] [input]\n'
 				'or: python3 adventofcode.py benchmark')
 
 
