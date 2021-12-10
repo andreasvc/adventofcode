@@ -143,7 +143,7 @@ def day5b(s):
 	return _day5(s, diagonals=True)
 
 
-def day6(s, days=80):
+def _day6(s, days=80):
 	x = [0] * 9
 	for a in [int(a) for a in s.split(',')]:
 		x[a] += 1
@@ -154,11 +154,11 @@ def day6(s, days=80):
 
 
 def day6a(s):
-	return day6(s, 80)
+	return _day6(s, 80)
 
 
 def day6b(s):
-	return day6(s, 256)
+	return _day6(s, 256)
 
 
 def day7a(s):
@@ -269,6 +269,47 @@ def day9b(s):
 	a, b, c = sorted(basins.subsets(), key=len)[-3:]
 	return len(a) * len(b) * len(c)
 
+
+def day10a(s):
+	stack = []
+	mapping = dict(zip('([{<', ')]}>'))
+	scores = dict(zip(')]}>', [3, 57, 1197, 25137]))
+	result = 0
+	for line in s.splitlines():
+		for n, char in enumerate(line):
+			if char in '([{<':
+				stack.append(char)
+			elif char in ')]}>':
+				if stack and mapping[stack[-1]] == char:
+					stack.pop()
+				else:
+					print(n, char, scores[char], line)
+					result += scores[char]
+					break
+	return result
+
+
+def day10b(s):
+	mapping = dict(zip('([{<', ')]}>'))
+	scores = dict(zip(')]}>', [1, 2, 3, 4]))
+	results = []
+	for line in s.splitlines():
+		stack = []
+		for n, char in enumerate(line):
+			if char in '([{<':
+				stack.append(char)
+			elif char in ')]}>':
+				if stack and mapping[stack[-1]] == char:
+					stack.pop()
+				else:
+					break
+		else:
+			result = 0
+			for char in stack[::-1]:
+				result *= 5
+				result += scores[mapping[char]]
+			results.append(result)
+	return sorted(results)[len(results) // 2]
 
 
 def benchmark():
