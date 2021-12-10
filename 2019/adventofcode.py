@@ -2,8 +2,8 @@
 import os
 import re
 import sys
+import itertools
 # import operator
-# import itertools
 # from functools import reduce
 from collections import defaultdict  # Counter
 # import numpy as np
@@ -255,6 +255,110 @@ def day6b(s):
 		graph[b].add(a)
 		graph[a].add(b)
 	return min(travel('YOU', 'SAN')) - 2
+
+
+def day7a(s):
+	"""
+	>>> day7a('3,15,3,16,1002,16,10,16,1,16,15,15,4,15,99,0,0')
+	43210
+	>>> day7a('3,23,3,24,1002,24,10,24,1002,23,-1,23,101,5,23,23,1,24,23,23,4,'
+	...		'23,99,0,0')
+	54321
+	>>> day7a('3,31,3,32,1002,32,10,32,1001,31,-2,31,1007,31,0,33,1002,33,7,'
+	...		'33,1,33,31,31,1,32,31,31,4,31,99,0,0,0')
+	65210
+	"""
+	program = [int(a) for a in s.split(',')]
+	result = []
+	for perm in itertools.permutations(range(5)):
+		inp = [0]
+		for n in perm:
+			inp = day5(program.copy(), [n] + inp[:1])
+			# print(n, inp)
+		# print(perm, inp)
+		result.append(inp[0])
+	return max(result)
+
+
+def day7b(s):
+	program = [int(a) for a in s.split(',')]
+	result = []
+	for perm in itertools.permutations(range(5, 10)):
+		inp = [0]
+		programs = [program.copy() for _ in range(5)]
+		pcs = [0] * 5
+		for n, phasesetting in enumerate(perm):
+			inp, pcs[n] = interpreter(
+					programs[n], [phasesetting] + inp, pc=pcs[n])
+			if n == 4 and pcs[n] != -1:
+				lastout = inp
+		while pcs[-1] != -1:
+			for n in range(5):
+				inp, pcs[n] = interpreter(programs[n], inp, pc=pcs[n])
+				if n == 4 and pcs[n] != -1:
+					lastout = inp
+		result.append(lastout[0])
+	return max(result)
+
+
+def day8a(s, width=25, height=6):
+	layers = [s[n:n + width * height]
+			for n in range(0, len(s), width * height)]
+	cnt, layer = min((layer.count('0'), layer)
+			for layer in layers)
+	return layer.count('1') * layer.count('2')
+
+
+def day8b(s, width=25, height=6):
+	layers = [s[n:n + width * height]
+			for n in range(0, len(s), width * height)]
+	result = [2] * (width * height)
+	for layer in layers:
+		for n, char in enumerate(layer):
+			if char in '01' and result[n] == 2:
+				result[n] = int(char)
+	return '\n'.join(
+			''.join('#' if a else ' '
+				for a in result[row * width:(row + 1) * width])
+			for row in range(6))
+
+
+def interpreter(nums, inp, pc=0):
+	"""day 7 version. returns for every output."""
+	outputs = []
+	while True:
+		op = nums[pc]
+		mode = op // 100
+		op = op % 100
+		if op == 99:  # halt
+			break
+		elif op == 3:  # input
+			nums[nums[pc + 1]] = inp.pop(0)
+			pc += 2
+		elif op == 4:  # output
+			a = nums[pc + 1] if mode & 1 else nums[nums[pc + 1]]
+			outputs.append(a)
+			pc += 2
+			return outputs, pc
+		elif op in [1, 2, 5, 6, 7, 8]:  # add/mult
+			a = nums[pc + 1] if mode & 1 else nums[nums[pc + 1]]
+			b = nums[pc + 2] if mode & 2 else nums[nums[pc + 2]]
+			if op == 1:  # add
+				nums[nums[pc + 3]] = a + b
+			elif op == 2:  # mult
+				nums[nums[pc + 3]] = a * b
+			elif op == 7:  # less than
+				nums[nums[pc + 3]] = int(a < b)
+			elif op == 8:  # equals
+				nums[nums[pc + 3]] = int(a == b)
+			#
+			if (op == 5 and a != 0) or (op == 6 and a == 0):
+				pc = b
+			else:
+				pc += 3 if 5 <= op <= 6 else 4
+		else:
+			raise ValueError(op)
+	return outputs, -1  # -1=halt
 
 
 def benchmark():
