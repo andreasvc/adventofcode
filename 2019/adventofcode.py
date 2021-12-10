@@ -148,10 +148,11 @@ def day4a(s):
 
 def day4b(s):
 	a, b = [int(a) for a in s.split('-')]
+	digits = [(2 * str(d), 3 * str(d)) for d in range(10)]
 	cnt = 0
 	for n in range(a, b + 1):
 		nn = str(n)
-		if all(2 * str(d) not in nn or 3 * str(d) in nn for d in range(10)):
+		if all(dd not in nn or ddd in nn for dd, ddd in digits):
 			continue
 		if all(d1 <= d2 for d1, d2 in zip(nn, nn[1:])):
 			cnt += 1
@@ -159,13 +160,13 @@ def day4b(s):
 
 
 def day5a(s):
-	nums = [int(a) for a in s.split(',')]
-	return interpreter(nums, [1])[0][-1]
+	program = [int(a) for a in s.split(',')]
+	return interpreter(program, [1])[0][-1]
 
 
 def day5b(s):
-	nums = [int(a) for a in s.split(',')]
-	return interpreter(nums, [5])[0][-1]
+	program = [int(a) for a in s.split(',')]
+	return interpreter(program, [5])[0][-1]
 
 
 def day6a(s):
@@ -213,12 +214,12 @@ def day7a(s):
 	...		'33,1,33,31,31,1,32,31,31,4,31,99,0,0,0')
 	65210
 	"""
-	program = [int(a) for a in s.split(',')]
+	program = defaultdict(int, enumerate(int(a) for a in s.split(',')))
 	result = []
 	for perm in itertools.permutations(range(5)):
 		inp = [0]
 		for n in perm:
-			inp, _ = interpreter(program.copy(), [n] + inp[:1])
+			inp, _, _ = interpreter(program.copy(), [n] + inp[:1])
 			# print(n, inp)
 		# print(perm, inp)
 		result.append(inp[0])
@@ -226,22 +227,22 @@ def day7a(s):
 
 
 def day7b(s):
-	program = [int(a) for a in s.split(',')]
+	program = defaultdict(int, enumerate(int(a) for a in s.split(',')))
 	result = []
 	for perm in itertools.permutations(range(5, 10)):
 		inp = [0]
 		programs = [program.copy() for _ in range(5)]
 		pcs = [0] * 5
 		for n, phasesetting in enumerate(perm):
-			inp, pcs[n] = interpreter(
+			inp, pcs[n], _ = interpreter(
 					programs[n], [phasesetting] + inp,
-					pc=pcs[n], incremental=True)
+					incremental=True, pc=pcs[n])
 			if n == 4 and pcs[n] != -1:
 				lastout = inp
 		while pcs[-1] != -1:
 			for n in range(5):
-				inp, pcs[n] = interpreter(
-						programs[n], inp, pc=pcs[n], incremental=True)
+				inp, pcs[n], _ = interpreter(
+						programs[n], inp, incremental=True, pc=pcs[n])
 				if n == 4 and pcs[n] != -1:
 					lastout = inp
 		result.append(lastout[0])
@@ -271,12 +272,12 @@ def day8b(s, width=25, height=6):
 
 
 def day9a(s):
-	program = [int(a) for a in s.split(',')]
+	program = defaultdict(int, enumerate(int(a) for a in s.split(',')))
 	return interpreter(program, [1], incremental=False)[0][-1]
 
 
 def day9b(s):
-	program = [int(a) for a in s.split(',')]
+	program = defaultdict(int, enumerate(int(a) for a in s.split(',')))
 	return interpreter(program, [2], incremental=False)[0][-1]
 
 
@@ -333,30 +334,85 @@ def day10b(s):
 	return xx * 100 + yy
 
 
-def interpreter(nums, inp, pc=0, incremental=False):
+def day11a(s):
+	program = defaultdict(int, enumerate(int(a) for a in s.split(',')))
+	grid = defaultdict(int)
+	pc = rb = direction = 0
+	x = y = 2
+	xd, yd = [0, 1, 0, -1], [-1, 0, 1, 0]
+	while True:
+		inp = [grid[x, y]]
+		color, pc, rb = interpreter(
+				program, inp, pc=pc, incremental=True, rb=rb)
+		if pc == -1:
+			break
+		[turn], pc, rb = interpreter(
+				program, inp, pc=pc, incremental=True, rb=rb)
+		grid[x, y] = color[0]
+		direction = (direction + (-1 if turn else 1)) % 4
+		x, y = x + xd[direction], y + yd[direction]
+	return len(grid)
+
+
+def day11b(s):
+	program = defaultdict(int, enumerate(int(a) for a in s.split(',')))
+	grid = defaultdict(int)
+	pc = rb = direction = 0
+	x = y = 0
+	grid[x, y] = 1
+	xd, yd = [0, 1, 0, -1], [-1, 0, 1, 0]
+	while True:
+		inp = [grid[x, y]]
+		color, pc, rb = interpreter(
+				program, inp, incremental=True, pc=pc, rb=rb)
+		if pc == -1:
+			break
+		[turn], pc, rb = interpreter(
+				program, inp, incremental=True, pc=pc, rb=rb)
+		grid[x, y] = color[0]
+		direction = (direction + (-1 if turn else 1)) % 4
+		x, y = x + xd[direction], y + yd[direction]
+	xs, ys = [x for x, _ in grid], [y for _, y in grid]
+	return '\n'.join(
+			''.join('#' if grid[x, y] else ' '
+				# why mirrored?
+				for x in range(max(xs), min(xs) - 1, -1))
+				# for x in range(min(xs), max(xs) + 1))
+				for y in range(min(ys), max(ys) + 1))
+
+
+def interpreter(nums, inp, incremental=False, pc=0, rb=0):
 	"""day 9 version. returns for every output."""
 	def read(par):
 		if mode[-par] == '0':  # position
+			if nums[pc + par] < 0:
+				raise ValueError
 			return nums[nums[pc + par]]
 		elif mode[-par] == '1':  # immediate
+			if pc + par < 0:
+				raise ValueError
 			return nums[pc + par]
 		elif mode[-par] == '2':  # relative base
+			if nums[pc + par] + rb < 0:
+				raise ValueError
 			return nums[nums[pc + par] + rb]
 		raise ValueError
 
 	def write(par, val):
 		if mode[-par] == '0':  # position
+			if nums[pc + par] < 0:
+				raise ValueError
 			nums[nums[pc + par]] = val
 		elif mode[-par] == '2':  # relative base
+			if nums[pc + par] + rb < 0:
+				raise ValueError
 			nums[nums[pc + par] + rb] = val
 		else:
 			raise ValueError
 
-	tmp = defaultdict(int)
-	tmp.update(enumerate(nums))
-	nums = tmp
+	if pc < 0 or pc not in nums:
+		raise ValueError
 	outputs = []
-	rb = 0  # relative base
 	while True:
 		op = nums[pc]
 		mode = '%03d' % (op // 100)
@@ -367,12 +423,11 @@ def interpreter(nums, inp, pc=0, incremental=False):
 			write(1, inp.pop(0))
 			pc += 2
 		elif op == 4:  # output
-			# a = nums[pc + 1] if mode & 1 else nums[nums[pc + 1]]
 			a = read(1)
 			outputs.append(a)
 			pc += 2
 			if incremental:
-				return outputs, pc
+				return outputs, pc, rb
 		elif op in [1, 2, 5, 6, 7, 8]:  # add/mult
 			a, b = read(1), read(2)
 			if op == 1:  # add
@@ -383,7 +438,7 @@ def interpreter(nums, inp, pc=0, incremental=False):
 				write(3, int(a < b))
 			elif op == 8:  # equals
 				write(3, int(a == b))
-			#
+			# jump if true, jump if zero
 			if (op == 5 and a != 0) or (op == 6 and a == 0):
 				pc = b
 			else:
@@ -393,7 +448,7 @@ def interpreter(nums, inp, pc=0, incremental=False):
 			pc += 2
 		else:
 			raise ValueError(op)
-	return outputs, -1  # -1=halt
+	return outputs, -1, rb  # -1=halt
 
 
 def benchmark():
