@@ -157,70 +157,14 @@ def day4b(s):
 	return cnt
 
 
-def day5(nums, inp):
-	pc = 0
-	outputs = []
-	while True:
-		op = nums[pc]
-		mode = op // 100
-		op = op % 100
-		if op == 99:  # halt
-			break
-		elif op == 3:  # input
-			nums[nums[pc + 1]] = inp.pop(0)
-			pc += 2
-		elif op == 4:  # output
-			a = nums[pc + 1] if mode & 1 else nums[nums[pc + 1]]
-			outputs.append(a)
-			pc += 2
-		elif op in [1, 2, 5, 6, 7, 8]:  # add/mult
-			a = nums[pc + 1] if mode & 1 else nums[nums[pc + 1]]
-			b = nums[pc + 2] if mode & 2 else nums[nums[pc + 2]]
-			if op == 1:  # add
-				nums[nums[pc + 3]] = a + b
-			elif op == 2:  # mult
-				nums[nums[pc + 3]] = a * b
-			elif op == 7:  # less than
-				nums[nums[pc + 3]] = int(a < b)
-			elif op == 8:  # equals
-				nums[nums[pc + 3]] = int(a == b)
-			#
-			if (op == 5 and a != 0) or (op == 6 and a == 0):
-				pc = b
-			else:
-				pc += 3 if 5 <= op <= 6 else 4
-		else:
-			raise ValueError(op)
-	return outputs
-
-
 def day5a(s):
 	nums = [int(a) for a in s.split(',')]
-	return day5(nums, [1])
+	return interpreter(nums, [1])[0][-1]
 
 
 def day5b(s):
-	"""
-	>>> day5([3,9,8,9,10,9,4,9,99,-1,8], [8])
-	[1]
-	>>> day5([3,9,8,9,10,9,4,9,99,-1,8], [7])
-	[0]
-	>>> day5([3,9,7,9,10,9,4,9,99,-1,8], [7])
-	[1]
-	>>> day5([3,9,7,9,10,9,4,9,99,-1,8], [8])
-	[0]
-
-	>>> day5([3,3,1108,-1,8,3,4,3,99], [8])
-	[1]
-	>>> day5([3,3,1108,-1,8,3,4,3,99], [7])
-	[0]
-	>>> day5([3,3,1107,-1,8,3,4,3,99], [7])
-	[1]
-	>>> day5([3,3,1107,-1,8,3,4,3,99], [8])
-	[0]
-	"""
 	nums = [int(a) for a in s.split(',')]
-	return day5(nums, [5])
+	return interpreter(nums, [5])[0][-1]
 
 
 def day6a(s):
@@ -273,7 +217,7 @@ def day7a(s):
 	for perm in itertools.permutations(range(5)):
 		inp = [0]
 		for n in perm:
-			inp = day5(program.copy(), [n] + inp[:1])
+			inp, _ = interpreter(program.copy(), [n] + inp[:1])
 			# print(n, inp)
 		# print(perm, inp)
 		result.append(inp[0])
@@ -289,12 +233,14 @@ def day7b(s):
 		pcs = [0] * 5
 		for n, phasesetting in enumerate(perm):
 			inp, pcs[n] = interpreter(
-					programs[n], [phasesetting] + inp, pc=pcs[n])
+					programs[n], [phasesetting] + inp,
+					pc=pcs[n], incremental=True)
 			if n == 4 and pcs[n] != -1:
 				lastout = inp
 		while pcs[-1] != -1:
 			for n in range(5):
-				inp, pcs[n] = interpreter(programs[n], inp, pc=pcs[n])
+				inp, pcs[n] = interpreter(
+						programs[n], inp, pc=pcs[n], incremental=True)
 				if n == 4 and pcs[n] != -1:
 					lastout = inp
 		result.append(lastout[0])
@@ -323,39 +269,74 @@ def day8b(s, width=25, height=6):
 			for row in range(6))
 
 
-def interpreter(nums, inp, pc=0):
-	"""day 7 version. returns for every output."""
+def day9a(s):
+	program = [int(a) for a in s.split(',')]
+	return interpreter(program, [1], incremental=False)[0][-1]
+
+
+def day9b(s):
+	program = [int(a) for a in s.split(',')]
+	return interpreter(program, [2], incremental=False)[0][-1]
+
+
+def interpreter(nums, inp, pc=0, incremental=False):
+	"""day 9 version. returns for every output."""
+	def read(par):
+		if mode[-par] == '0':  # position
+			return nums[nums[pc + par]]
+		elif mode[-par] == '1':  # immediate
+			return nums[pc + par]
+		elif mode[-par] == '2':  # relative base
+			return nums[nums[pc + par] + rb]
+		raise ValueError
+
+	def write(par, val):
+		if mode[-par] == '0':  # position
+			nums[nums[pc + par]] = val
+		elif mode[-par] == '2':  # relative base
+			nums[nums[pc + par] + rb] = val
+		else:
+			raise ValueError
+
+	tmp = defaultdict(int)
+	tmp.update(enumerate(nums))
+	nums = tmp
 	outputs = []
+	rb = 0  # relative base
 	while True:
 		op = nums[pc]
-		mode = op // 100
+		mode = '%03d' % (op // 100)
 		op = op % 100
 		if op == 99:  # halt
 			break
 		elif op == 3:  # input
-			nums[nums[pc + 1]] = inp.pop(0)
+			write(1, inp.pop(0))
 			pc += 2
 		elif op == 4:  # output
-			a = nums[pc + 1] if mode & 1 else nums[nums[pc + 1]]
+			# a = nums[pc + 1] if mode & 1 else nums[nums[pc + 1]]
+			a = read(1)
 			outputs.append(a)
 			pc += 2
-			return outputs, pc
+			if incremental:
+				return outputs, pc
 		elif op in [1, 2, 5, 6, 7, 8]:  # add/mult
-			a = nums[pc + 1] if mode & 1 else nums[nums[pc + 1]]
-			b = nums[pc + 2] if mode & 2 else nums[nums[pc + 2]]
+			a, b = read(1), read(2)
 			if op == 1:  # add
-				nums[nums[pc + 3]] = a + b
+				write(3, a + b)
 			elif op == 2:  # mult
-				nums[nums[pc + 3]] = a * b
+				write(3, a * b)
 			elif op == 7:  # less than
-				nums[nums[pc + 3]] = int(a < b)
+				write(3, int(a < b))
 			elif op == 8:  # equals
-				nums[nums[pc + 3]] = int(a == b)
+				write(3, int(a == b))
 			#
 			if (op == 5 and a != 0) or (op == 6 and a == 0):
 				pc = b
 			else:
 				pc += 3 if 5 <= op <= 6 else 4
+		elif op == 9:  # adjust rb
+			rb += read(1)
+			pc += 2
 		else:
 			raise ValueError(op)
 	return outputs, -1  # -1=halt
