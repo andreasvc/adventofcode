@@ -3,10 +3,11 @@ import os
 import re
 import sys
 import itertools
+import math
 # import operator
 # from functools import reduce
 from collections import defaultdict  # Counter
-# import numpy as np
+import numpy as np
 # from numba import njit
 
 
@@ -277,6 +278,59 @@ def day9a(s):
 def day9b(s):
 	program = [int(a) for a in s.split(',')]
 	return interpreter(program, [2], incremental=False)[0][-1]
+
+
+def day10a(s):
+	def lineofsight(x1, y1, x2, y2):
+		if x1 == x2 and y1 == y2:
+			return False
+		xd, yd = x2 - x1, y2 - y1
+		if xd == 0:
+			if y1 > y2:
+				y1, y2 = y2, y1
+			return not grid[y1 + 1:y2, x1].any()
+		elif yd == 0:
+			if x1 > x2:
+				x1, x2 = x2, x1
+			return not grid[y1, x1 + 1:x2].any()
+		div = math.gcd(xd, yd)
+		stepx, stepy = xd // div, yd // div
+		for x3, y3 in zip(
+				range(x1 + stepx, x2, stepx),
+				range(y1 + stepy, y2, stepy)):
+			if grid[y3, x3]:
+				return False
+		return True
+
+	def numasteroids(x, y):
+		return sum(lineofsight(x, y, xx, yy)
+				for yy, xx in zip(*grid.nonzero()))
+
+	grid = np.array([[char == '#' for char in line]
+			for line in s.splitlines()], dtype=int)
+	return max((numasteroids(x, y), x, y) for y, x in zip(*grid.nonzero()))
+
+
+def day10b(s):
+	grid = np.array([[char == '#' for char in line]
+			for line in s.splitlines()], dtype=int)
+	_, x, y = day10a(s)  # origin
+	coords = sorted(
+			(math.atan2(yy - y, xx - x),  # theta
+			-math.hypot(xx - x , yy - y),  # r
+			xx, yy)
+			for yy, xx in zip(*grid.nonzero()))
+	# fixme: linear search
+	for n, (theta, r, xx, yy) in enumerate(coords):
+		if xx >= x:
+			break
+	coords = coords[n:] + coords[:n]
+	coords = [list(group) for _, group
+			in itertools.groupby(coords, lambda x: x[0])]
+	_, _, xx, yy = next(itertools.islice(
+			(group.pop() for group in itertools.cycle(coords) if group),
+			199, None))
+	return xx * 100 + yy
 
 
 def interpreter(nums, inp, pc=0, incremental=False):
