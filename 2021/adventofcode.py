@@ -3,7 +3,7 @@ import os
 import re
 import sys
 # import operator
-# import itertools
+import itertools
 # from functools import reduce
 from collections import Counter  #, defaultdict
 import numpy as np
@@ -310,6 +310,38 @@ def day10b(s):
 				result += scores[mapping[char]]
 			results.append(result)
 	return sorted(results)[len(results) // 2]
+
+
+def _day11(s):
+	grid = np.array([[int(a) for a in line]
+			for line in s.splitlines()], dtype=int)
+	numflashes = 0
+	while grid.any().any():
+		grid += 1
+		flashing = list(zip(*(grid > 9).nonzero()))
+		flashed = set(flashing)
+		while(flashing):
+			x, y = flashing.pop()
+			numflashes += 1
+			x1, x2 = max(x - 1, 0), min(grid.shape[0], x + 2)
+			y1, y2 = max(y - 1, 0), min(grid.shape[1], y + 2)
+			grid[x1:x2, y1:y2] += 1
+			newflashes = set(zip(*(grid > 9).nonzero())) - flashed
+			flashed.update(newflashes)
+			flashing.extend(newflashes)
+		grid[grid > 9] = 0
+		yield numflashes, grid
+
+
+def day11a(s):
+	numflashes, _ = next(itertools.islice(_day11(s), 99, None))
+	return numflashes
+
+
+def day11b(s):
+	for n, (_, grid) in enumerate(_day11(s), 1):
+		if not grid.any().any():
+			return n
 
 
 def benchmark():
