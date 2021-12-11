@@ -214,7 +214,7 @@ def day7a(s):
 	...		'33,1,33,31,31,1,32,31,31,4,31,99,0,0,0')
 	65210
 	"""
-	program = defaultdict(int, enumerate(int(a) for a in s.split(',')))
+	program = parseprog(s)
 	result = []
 	for perm in itertools.permutations(range(5)):
 		inp = [0]
@@ -227,7 +227,7 @@ def day7a(s):
 
 
 def day7b(s):
-	program = defaultdict(int, enumerate(int(a) for a in s.split(',')))
+	program = parseprog(s)
 	result = []
 	for perm in itertools.permutations(range(5, 10)):
 		inp = [0]
@@ -272,12 +272,12 @@ def day8b(s, width=25, height=6):
 
 
 def day9a(s):
-	program = defaultdict(int, enumerate(int(a) for a in s.split(',')))
+	program = parseprog(s)
 	return interpreter(program, [1], incremental=False)[0][-1]
 
 
 def day9b(s):
-	program = defaultdict(int, enumerate(int(a) for a in s.split(',')))
+	program = parseprog(s)
 	return interpreter(program, [2], incremental=False)[0][-1]
 
 
@@ -335,7 +335,7 @@ def day10b(s):
 
 
 def day11a(s):
-	program = defaultdict(int, enumerate(int(a) for a in s.split(',')))
+	program = parseprog(s)
 	grid = defaultdict(int)
 	pc = rb = direction = 0
 	x = y = 2
@@ -355,7 +355,7 @@ def day11a(s):
 
 
 def day11b(s):
-	program = defaultdict(int, enumerate(int(a) for a in s.split(',')))
+	program = parseprog(s)
 	grid = defaultdict(int)
 	pc = rb = direction = 0
 	x = y = 0
@@ -379,6 +379,68 @@ def day11b(s):
 				for x in range(max(xs), min(xs) - 1, -1))
 				# for x in range(min(xs), max(xs) + 1))
 				for y in range(min(ys), max(ys) + 1))
+
+
+def day13a(s):
+	program = parseprog(s)
+	grid = {}
+	pc = rb = 0
+	while True:
+		inp = []
+		x, pc, rb = interpreter(program, inp, incremental=True, pc=pc, rb=rb)
+		if pc == -1:
+			break
+		y, pc, rb = interpreter(program, inp, incremental=True, pc=pc, rb=rb)
+		if pc == -1:
+			break
+		tileid, pc, rb = interpreter(
+				program, inp, incremental=True, pc=pc, rb=rb)
+		if pc == -1:
+			break
+		if tileid[0] == 2:
+			grid[x[0], y[0]] = tileid[0]
+	return len(grid)
+
+
+def day13b(s):
+	program = parseprog(s)
+	program[0] = 2
+	grid = defaultdict(int)
+	pc = rb = score = paddlex= ballx = joystick = blocks = 0
+	while True:
+		inp = [joystick]
+		x, pc, rb = interpreter(program, inp, incremental=True, pc=pc, rb=rb)
+		if pc == -1:
+			break
+		y, pc, rb = interpreter(program, inp, incremental=True, pc=pc, rb=rb)
+		if pc == -1:
+			break
+		tileid, pc, rb = interpreter(
+				program, inp, incremental=True, pc=pc, rb=rb)
+		if pc == -1:
+			break
+		if x[0] == -1 and y[0] == 0:
+			score = tileid[0]
+		else:
+			if tileid[0] == 4:
+				ballx = x[0]
+			elif tileid[0] == 3:
+				paddlex = x[0]
+			elif tileid[0] == 2:
+				blocks += 1
+			elif tileid[0] == 0 and grid[x[0], y[0]] == 2:
+				blocks -= 1
+			grid[x[0], y[0]] = tileid[0]
+		joystick = 0
+		if paddlex < ballx:
+			joystick = 1
+		elif paddlex > ballx:
+			joystick = -1
+	return score
+
+
+def parseprog(s):
+	return defaultdict(int, enumerate(int(a) for a in s.split(',')))
 
 
 def interpreter(nums, inp, incremental=False, pc=0, rb=0):
@@ -449,7 +511,6 @@ def interpreter(nums, inp, incremental=False, pc=0, rb=0):
 		else:
 			raise ValueError(op)
 	return outputs, -1, rb  # -1=halt
-
 
 if __name__ == '__main__':
 	main(globals())
