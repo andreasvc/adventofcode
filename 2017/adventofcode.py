@@ -7,6 +7,9 @@ from functools import reduce
 from itertools import count
 from binascii import hexlify
 import numpy as np
+from numba import njit
+sys.path.append('..')
+from common import main
 
 
 def day1a(s):
@@ -135,12 +138,17 @@ def day5a(s):
 
 
 def day5b(s):
-	maze = [int(a) for a in s.splitlines()]
+	maze = np.array([int(a) for a in s.splitlines()], dtype=np.int64)
+	return _day5b(maze)
+
+
+@njit
+def _day5b(maze):
 	n = pos = 0
 	while 0 <= pos < len(maze):
-		newpos = pos + maze[pos]
-		maze[pos] += -1 if maze[pos] >= 3 else 1
-		pos = newpos
+		val = maze[pos]
+		maze[pos] = val + (-1 if val >= 3 else 1)
+		pos += val
 		n += 1
 	return n
 
@@ -368,7 +376,7 @@ def day10b(s, elements=256):
 			).decode('ascii')
 
 
-def day11(s):
+def _day11(s):
 	"""http://adventofcode.com/2017/day/11"""
 	path = s.split(',')
 	maxd = x = y = z = 0
@@ -396,11 +404,11 @@ def day11(s):
 
 
 def day11a(s):
-	return day11(s)[0]
+	return _day11(s)[0]
 
 
 def day11b(s):
-	return day11(s)[1]
+	return _day11(s)[1]
 
 
 def day12a(s):
@@ -526,6 +534,11 @@ def day15a(s, cycles=int(40e6)):
 	"""http://adventofcode.com/2017/day/15"""
 	a, b = s.splitlines()
 	a, b = int(a.split()[-1]), int(b.split()[-1])
+	return _day15a(a, b, cycles)
+
+
+@njit
+def _day15a(a, b, cycles):
 	result = 0
 	for n in range(cycles):
 		a *= 16807
@@ -554,7 +567,7 @@ def day15b(s, cycles=int(5e6)):
 				gen(b, 48271, 7)))
 
 
-def day16(s, letters):
+def _day16(s, letters):
 	"""http://adventofcode.com/2017/day/16"""
 	for move in s.strip().split(','):
 		if move[0] == 's':
@@ -573,7 +586,7 @@ def day16(s, letters):
 
 def day16a(s, numletters=16):
 	letters = 'abcdefghijklmnop'[:numletters]
-	return ''.join(day16(s, list(letters)))
+	return ''.join(_day16(s, list(letters)))
 
 
 def day16b(s, numletters=16, iterations=1000000000):
@@ -582,7 +595,7 @@ def day16b(s, numletters=16, iterations=1000000000):
 	results = {0: letters}
 	cache = {}
 	n = 1
-	letters = ''.join(day16(s, list(letters)))
+	letters = ''.join(_day16(s, list(letters)))
 	firstidx[letters] = n
 	results[n] = letters
 	while True:
@@ -599,7 +612,7 @@ def day16b(s, numletters=16, iterations=1000000000):
 			if n + 1 > iterations:
 				break
 			start = letters
-			letters = ''.join(day16(s, list(letters)))
+			letters = ''.join(_day16(s, list(letters)))
 			cache[start] = letters
 			n += 1
 			if letters not in firstidx:
@@ -610,7 +623,7 @@ def day16b(s, numletters=16, iterations=1000000000):
 			letters = cache[letters]
 		else:
 			start = letters
-			letters = ''.join(day16(s, list(letters)))
+			letters = ''.join(_day16(s, list(letters)))
 			cache[start] = letters
 	return ''.join(letters)
 
@@ -632,12 +645,16 @@ def day17a(s):
 
 
 def day17b(s):
-	steps = int(s)
+	return _day17b(int(s))
+
+
+@njit
+def _day17b(steps):
 	iterations = 50000000
 	pos = 0
 	numbefore = 0  # no of items after 0
 	numafter = 0  # no of items after 0
-	nextnum = None  # the number after 0
+	nextnum = -1  # the number after 0
 	for val in range(1, iterations + 1):
 		pos = ((pos + steps) % (numbefore + 1 + numafter)) + 1
 		if pos <= numbefore:
@@ -740,7 +757,7 @@ def day18b(s):
 	return cnt
 
 
-def day19(s):
+def _day19(s):
 	"""http://adventofcode.com/2017/day/19"""
 	steps = 0
 	diagram = s.splitlines()
@@ -779,11 +796,11 @@ def day19(s):
 
 
 def day19a(s):
-	return day19(s)[0]
+	return _day19(s)[0]
 
 
 def day19b(s):
-	return day19(s)[1]
+	return _day19(s)[1]
 
 
 def day20a(s, iterations=10000):
@@ -823,7 +840,7 @@ def day20b(s, iterations=10000):
 	return p.shape[0]
 
 
-def day21(s, iterations):
+def _day21(s, iterations):
 	"""http://adventofcode.com/2017/day/21"""
 	def parse(x):
 		return np.array([list(map(int, a.replace('.', '0').replace('#', '1')))
@@ -882,11 +899,11 @@ def day21(s, iterations):
 
 
 def day21a(s, iterations=5):
-	return day21(s, iterations)
+	return _day21(s, iterations)
 
 
 def day21b(s, iterations=18):
-	return day21(s, iterations)
+	return _day21(s, iterations)
 
 
 def day22a(s, iterations=10000):
@@ -935,11 +952,16 @@ def day22a(s, iterations=10000):
 
 
 def day22b(s, iterations=10000000):
-	gridsize = 10 if iterations <= 100 else 1024
-	grid = np.zeros((gridsize, gridsize), np.int8)
 	inp = np.array(
 			[list(map(int, a.replace('.', '0').replace('#', '2')))
 			for a in s.splitlines()], np.int8)
+	return _day22b(inp, iterations)
+
+
+@njit
+def _day22b(inp, iterations):
+	gridsize = 10 if iterations <= 100 else 1024
+	grid = np.zeros((gridsize, gridsize), np.int8)
 	x = y = gridsize // 2
 	grid[
 			x - len(inp) // 2:x + len(inp) // 2 + 1,
@@ -1054,7 +1076,7 @@ int main() {
 		return True
 
 	a = 1
-	b = c = f = h = 0
+	b = c = h = 0
 	if a == 0:
 		b = c = 84
 	else:
@@ -1068,7 +1090,7 @@ int main() {
 		b += 17
 
 
-def day24(n, workingset):
+def _day24(n, workingset):
 	"""http://adventofcode.com/2017/day/24"""
 	found = False
 	for a, b in workingset:
@@ -1078,7 +1100,7 @@ def day24(n, workingset):
 			if len(workingset) == 1:
 				yield (a, b)
 			else:
-				for x in day24(m, workingset - {(a, b)}):
+				for x in _day24(m, workingset - {(a, b)}):
 					yield (a, b) + x
 	if not found:
 		yield ()
@@ -1086,14 +1108,14 @@ def day24(n, workingset):
 
 def day24a(s):
 	pairs = {tuple(map(int, a.split('/'))) for a in s.splitlines()}
-	result = max(day24(0, pairs), key=sum)
+	result = max(_day24(0, pairs), key=sum)
 	return sum(result)
 
 
 def day24b(s):
 	pairs = {tuple(map(int, a.split('/'))) for a in s.splitlines()}
-	maxlen = max(map(len, day24(0, pairs)))
-	result = max((a for a in day24(0, pairs) if len(a) == maxlen), key=sum)
+	maxlen = max(map(len, _day24(0, pairs)))
+	result = max((a for a in _day24(0, pairs) if len(a) == maxlen), key=sum)
 	return sum(result)
 
 
@@ -1401,23 +1423,5 @@ In state B:
     - Continue with state A.""") == 3
 
 
-def benchmark():
-	import timeit
-	for n in range(1, 25 + 1):
-		for part in 'ab':
-			fun = 'day%d%s' % (n, part)
-			time = timeit.timeit(
-					'%s(inp)' % fun,
-					setup='inp = open("i%d").read().rstrip("\\n")' % n,
-					number=1,
-					globals=globals())
-			print('%s\t%5.2fs' % (fun, time))
-
-
 if __name__ == '__main__':
-	if len(sys.argv) > 1 and sys.argv[1] == 'benchmark':
-		benchmark()
-	elif len(sys.argv) > 1 and sys.argv[1].startswith('day'):
-		print(eval(sys.argv[1])(sys.stdin.read().rstrip('\n')))
-	else:
-		raise ValueError('unrecognized command')
+	main(globals())

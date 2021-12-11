@@ -1,5 +1,4 @@
 """Advent of Code 2020. http://adventofcode.com/2020 """
-import os
 import re
 import sys
 import operator
@@ -8,6 +7,8 @@ from functools import reduce
 from collections import Counter, defaultdict
 import numpy as np
 from numba import njit
+sys.path.append('..')
+from common import main
 
 
 def day1a(s):
@@ -51,7 +52,7 @@ def day2b(s):
 	return valid
 
 
-def day3(s, right, down):
+def _day3(s, right, down):
 	trees = pos = 0
 	for line in s.splitlines()[::down]:
 		if line[pos % len(line.strip())] == '#':
@@ -61,15 +62,15 @@ def day3(s, right, down):
 
 
 def day3a(s):
-	return day3(s, 3, 1)
+	return _day3(s, 3, 1)
 
 
 def day3b(s):
-	return (day3(s, 1, 1)
-			* day3(s, 3, 1)
-			* day3(s, 5, 1)
-			* day3(s, 7, 1)
-			* day3(s, 1, 2))
+	return (_day3(s, 1, 1)
+			* _day3(s, 3, 1)
+			* _day3(s, 5, 1)
+			* _day3(s, 7, 1)
+			* _day3(s, 1, 2))
 
 
 def day4a(s):
@@ -102,15 +103,15 @@ def day4b(s):
 	return valid
 
 
-def day5(line):
+def _day5(line):
 	"""
-	>>> day5('FBFBBFFRLR')
+	>>> _day5('FBFBBFFRLR')
 	357
-	>>> day5('BFFFBBFRRR')
+	>>> _day5('BFFFBBFRRR')
 	567
-	>>> day5('FFFBBBFRRR')
+	>>> _day5('FFFBBBFRRR')
 	119
-	>>> day5('BBFFBBFRLL')
+	>>> _day5('BBFFBBFRLL')
 	820"""
 	minrow, maxrow = 0, 128
 	for a in line[:7]:
@@ -132,14 +133,14 @@ def day5(line):
 
 
 def day5a(s):
-	return max(day5(line) for line in s.splitlines())
+	return max(_day5(line) for line in s.splitlines())
 
 
 def day5b(s):
 	seats = {8 * row + col
 			for row in range(0, 128)
 			for col in range(0, 8)}
-	seats -= set(day5(line) for line in s.splitlines())
+	seats -= set(_day5(line) for line in s.splitlines())
 	for a in seats:
 		if a - 1 not in seats and a + 1 not in seats:
 			return a
@@ -204,7 +205,7 @@ def day7b(s):
 	return result
 
 
-def day8(lines):
+def _day8(lines):
 	acc = pos = 0
 	executed = set()
 	while pos not in executed and pos < len(lines):
@@ -222,7 +223,7 @@ def day8(lines):
 
 def day8a(s):
 	lines = s.splitlines()
-	return day8(lines)[1]
+	return _day8(lines)[1]
 
 
 def day8b(s):
@@ -232,7 +233,7 @@ def day8b(s):
 		if line.startswith(('jmp', 'nop')):
 			other = 'jmp' if line.startswith('nop') else 'nop'
 			newprog = lines[:n] + [other + line[3:]] + lines[n + 1:]
-			terminates, acc = day8(newprog)
+			terminates, acc = _day8(newprog)
 			if terminates:
 				return acc
 
@@ -419,7 +420,7 @@ def day13b(s):
 	ind = [n for n, a in enumerate(fields) if a != 'x']
 	buses = [int(a) for a in fields if a != 'x']
 	# https://old.reddit.com/r/adventofcode/comments/kc4njx/2020_day_13_solutions/gfnwnf3/
-	t = 0
+	t = period = 0
 	for n in range(1, len(buses) + 1):
 		while not all((t + n) % a == 0 for n, a in zip(ind[:n], buses[:n])):
 			t += period
@@ -696,7 +697,7 @@ def day18b(s):
 	return day18a('\n'.join(preproc(line) for line in s.splitlines()))
 
 
-def day19a(s):
+def _slow_day19a(s):
 	import nltk
 	rules, received = s.split('\n\n')
 	rules = sorted(rules.splitlines(),
@@ -727,6 +728,7 @@ def day19a(s):
 					alt = tuple(alt.split())
 					yield (((lhs, ) + alt, (tuple(range(len(alt))), )), 1)
 
+	# https://github.com/andreasvc/disco-dop
 	from discodop import containers, pcfg
 	rules, received = s.split('\n\n')
 	grammar = containers.Grammar(list(conv(rules)), start='0')
@@ -761,7 +763,7 @@ def day20a(s):
 def day20b(s):
 	def parse(img):
 		return np.array([[1 if char == '#' else 0 for char in line]
-				for line in img.splitlines()], dtype=np.bool)
+				for line in img.splitlines()], dtype=bool)
 
 	def vec(seq):  # convert a boolean vector to an integer
 		return min(
@@ -801,10 +803,10 @@ def day20b(s):
 	ylen = tile.shape[0] - 2
 	xlen = tile.shape[1] - 2
 	xtiles = ytiles = int(len(tiles) ** 0.5)
-	im = np.zeros((ytiles * ylen, xtiles * xlen), dtype=np.bool)
-	empty = np.ones((ytiles * ylen, xtiles * xlen), dtype=np.bool)
+	im = np.zeros((ytiles * ylen, xtiles * xlen), dtype=bool)
+	empty = np.ones((ytiles * ylen, xtiles * xlen), dtype=bool)
 	im[:ylen, :xlen] = tile[1:-1, 1:-1]
-	empty[:ylen, :xlen] = np.zeros((ylen, xlen), dtype=np.bool)
+	empty[:ylen, :xlen] = np.zeros((ylen, xlen), dtype=bool)
 	xcur, ycur = xlen, 0
 	prev = tile
 	used = {corner}
@@ -828,7 +830,7 @@ def day20b(s):
 			# add to image
 			im[ycur:ycur + ylen, xcur:xcur + xlen] = tile[1:-1, 1:-1]
 			empty[ycur:ycur + ylen, xcur:xcur + xlen] = np.zeros((ylen, xlen),
-					dtype=np.bool)
+					dtype=bool)
 			xcur += xlen
 			prev = tile
 			used.add(match)
@@ -853,7 +855,7 @@ def day20b(s):
 		im = np.fliplr(im)
 
 
-def day21(s):
+def _day21(s):
 	ingredients = [set(line.split('(contains ')[0].split())
 			for line in s.splitlines()]
 	allergens = [set(line.split('(contains ')[1].rstrip(')').split(', '))
@@ -868,14 +870,14 @@ def day21(s):
 
 
 def day21a(s):
-	ingredients, allergens, candidates = day21(s)
+	ingredients, allergens, candidates = _day21(s)
 	return len([ingr for a, b in zip(ingredients, allergens)
 			for ingr in a
 			if not any(ingr in x for x in candidates.values())])
 
 
 def day21b(s):
-	ingredients, allergens, candidates = day21(s)
+	ingredients, allergens, candidates = _day21(s)
 	while any(len(b) > 1 for b in candidates.values()):
 		for a, b in candidates.items():
 			if len(b) == 1:
@@ -920,7 +922,7 @@ def day22b(s):
 	deck1, deck2 = s.split('\n\n')
 	deck1 = [int(a) for a in deck1.splitlines()[1:]]
 	deck2 = [int(a) for a in deck2.splitlines()[1:]]
-	_winner = subgame(deck1, deck2)
+	_ = subgame(deck1, deck2)
 	return sum(n * a for n, a in enumerate((deck1 or deck2)[::-1], 1))
 
 
@@ -973,7 +975,7 @@ def _day23b(start, maxcup=1_000_000):
 	return int(cups[1]) * int(cups[cups[1]])
 
 
-def day24(s):
+def _day24(s):
 	stepre = re.compile('(nw|ne|e|se|sw|w)')
 	state = {}
 	for line in s.splitlines():
@@ -1002,7 +1004,7 @@ def day24(s):
 
 
 def day24a(s):
-	state = day24(s)
+	state = _day24(s)
 	return sum(state.values())
 
 
@@ -1012,7 +1014,7 @@ def day24b(s):
 				(x + 1, y, z - 1), (x, y + 1, z - 1),
 				(x, y - 1, z + 1), (x - 1, y, z + 1)]
 
-	state = day24(s)  # 0=white(default), 1=black
+	state = _day24(s)  # 0=white(default), 1=black
 	for day in range(100):
 		newstate = {}
 		for (x, y, z), val in state.items():
@@ -1058,32 +1060,5 @@ def day25b(s):
 	"""There is no 25b."""
 
 
-def benchmark():
-	import timeit
-	for name in list(globals()):
-		match = re.match(r'day(\d+)[ab]', name)
-		if match is not None and os.path.exists('i%s' % match.group(1)):
-			time = timeit.timeit(
-					'%s(inp)' % name,
-					setup='inp = open("i%s").read().rstrip("\\n")'
-						% match.group(1),
-					number=1,
-					globals=globals())
-			print('%s\t%5.2fs' % (name, time))
-
-
-def main():
-	if len(sys.argv) > 1 and sys.argv[1] == 'benchmark':
-		benchmark()
-	elif len(sys.argv) > 1 and sys.argv[1].startswith('day'):
-		with open('i' + sys.argv[1][3:].rstrip('ab') if len(sys.argv) == 2
-				else sys.argv[2]) as inp:
-			print(globals()[sys.argv[1]](inp.read().rstrip('\n')))
-	else:
-		raise ValueError('unrecognized command. '
-				'usage: python3 adventofcode.py day[1-25][ab] [input]'
-				'or: python3 adventofcode.py benchmark')
-
-
 if __name__ == '__main__':
-	main()
+	main(globals())

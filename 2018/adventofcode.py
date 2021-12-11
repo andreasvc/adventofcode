@@ -5,7 +5,8 @@ import datetime
 from itertools import cycle
 from collections import Counter, defaultdict, deque
 import numpy as np
-from numba import njit
+sys.path.append('..')
+from common import main
 
 
 def day1a(s):
@@ -38,7 +39,7 @@ def day2b(s):
 				return ''.join(x for x, y in zip(line, line2) if x == y)
 
 
-def day3(s):
+def _day3(s):
 	fabric = np.zeros((1000, 1000), dtype=np.int8)
 	for line in s.splitlines():
 		id, x, y, width, height = map(int, re.findall(r'\d+', line))
@@ -47,19 +48,19 @@ def day3(s):
 
 
 def day3a(s):
-	fabric = day3(s)
+	fabric = _day3(s)
 	return (fabric > 1).sum().sum()
 
 
 def day3b(s):
-	fabric = day3(s)
+	fabric = _day3(s)
 	for line in s.splitlines():
 		id, x, y, width, height = map(int, re.findall(r'\d+', line))
 		if (fabric[x:x + width, y:y + height] == 1).all().all():
 			return id
 
 
-def day4(s):
+def _day4(s):
 	events = []
 	for line in s.splitlines():
 		date, event = line.lstrip('[').split('] ')
@@ -77,18 +78,18 @@ def day4(s):
 
 
 def day4a(s):
-	naps = day4(s)
+	naps = _day4(s)
 	guard = max(naps, key=lambda x: naps[x].sum())
 	return guard * naps[guard].argmax()
 
 
 def day4b(s):
-	naps = day4(s)
+	naps = _day4(s)
 	guard = max(naps, key=lambda x: naps[x].max())
 	return guard * naps[guard].argmax()
 
 
-def day5(s):
+def _day5(s):
 	result = bytearray()
 	for a in s:
 		if result and a ^ 32 == result[-1]:
@@ -99,12 +100,12 @@ def day5(s):
 
 
 def day5a(s):
-	return len(day5(bytearray(s, 'ascii')))
+	return len(_day5(bytearray(s, 'ascii')))
 
 
 def day5b(s):
-	s = day5(bytearray(s, 'ascii'))
-	return min(len(day5(bytearray(x for x in s if x | 32 != a)))
+	s = _day5(bytearray(s, 'ascii'))
+	return min(len(_day5(bytearray(x for x in s if x | 32 != a)))
 			for a in range(ord('a'), ord('a') + 26))
 
 
@@ -242,7 +243,7 @@ def day9b(s):
 			players, last * 100))
 
 
-def day10(s):
+def _day10(s):
 	inp = np.array([
 		[int(a) for a in re.findall(r'-?\d+', line)]
 		for line in s.splitlines()], dtype=int)
@@ -265,54 +266,44 @@ def day10(s):
 
 
 def day10a(s):
-	return day10(s)[0]
+	return _day10(s)[0]
 
 
 def day10b(s):
-	return day10(s)[1]
+	return _day10(s)[1]
 
 
-def day11(s):
-	def powerlevel(serial, x, y):
+def _day11(s):
+	def powerlevel(x, y):
 		rackid = x + 10
-		result = rackid * y
-		result += serial
-		result *= rackid
+		result = (rackid * y + serial) * rackid
 		result = (result // 100) % 10
 		return result - 5
 
 	serial = int(s)
-	buf = np.zeros((301, 301), dtype=int)
-	for x in range(1, 301):
-		for y in range(1, 301):
-			buf[x, y] = powerlevel(serial, x, y)
+	buf = np.fromfunction(powerlevel, (301, 301), dtype=int)
 	return serial, buf
 
 
 def day11a(s):
-	serial, buf = day11(s)
+	serial, buf = _day11(s)
 	return '%d,%d' % max(((x, y)
 			for x in range(1, 301 - 3)
 				for y in range(1, 301 - 3)),
 			key=lambda a: buf[a[0]:a[0] + 3, a[1]:a[1] + 3].sum())
 
 
-@njit
-def _day11b(serial, buf):
-	n, m = 0, (0, 0, 0)
-	for size in range(1, 301):
-		print(size)
-		for x in range(1, 301 - size):
-			for y in range(1, 301 - size):
-				nn = buf[x:x + size, y:y + size].sum()
-				if nn > n:
-					n, m = nn, (x, y, size)
-					print(n, m)
-	return m
-
-
 def day11b(s):
-	return '%d,%d,%d' % _day11b(*day11(s))
+	serial, buf = _day11(s)
+	maxresult = (0, 0, 0, 0)
+	for size in range(3, 301):
+		result = max((buf[x:x + size, y:y + size].sum(), x, y, size)
+					for x in range(1, 301 - size)
+						for y in range(1, 301 - size))
+		if result[0] < 0:
+			break
+		maxresult = max(result, maxresult)
+	return '%d,%d,%d' % maxresult[1:]
 
 
 def _day12(s, gens=20):
@@ -349,7 +340,7 @@ def day12b(s):
 	return base + (50_000_000_000 - 200) * diff
 
 
-def day13(s):
+def _day13(s):
 	state = [[a for a in line] for line in s.splitlines()]
 	tracks = [line.copy() for line in state]
 	carts = []
@@ -403,11 +394,11 @@ def day13(s):
 
 
 def day13a(s):
-	return day13(s)[0]
+	return _day13(s)[0]
 
 
 def day13b(s):
-	return day13(s)[1]
+	return _day13(s)[1]
 
 
 def day14a(s):
@@ -449,19 +440,20 @@ def day14b(s):
 
 
 def day15a(s):
-	state = [list(line) for line in s.splitlines()]
+	# state = [list(line) for line in s.splitlines()]
 	# cave = [['#' if a == '#' else '.' for a in line]
 	# 		for line in s.splitlines()]
-	rounds = 0
-	hitpoints = [s.count('E') * 200, s.count('G') * 200]
-	while (any(x == 'E' for line in state for x in line)
-			and any(x == 'G' for line in state for x in line)):
-		...
-		rounds += 1
-	return rounds * max(hitpoints)
+	# rounds = 0
+	# hitpoints = [s.count('E') * [200]] + [s.count('G') * [200]]
+	# while (any(x == 'E' for line in state for x in line)
+	# 		and any(x == 'G' for line in state for x in line)):
+	# 	...
+	# 	rounds += 1
+	# return rounds * max(hitpoints)
+	return
 
 
-def day16(s):
+def _day16(s):
 	samples, program = s.split('\n\n\n')
 	before, after, instruction = [], [], []
 	for chunk in samples.split('\n\n'):
@@ -519,12 +511,12 @@ def day16(s):
 
 
 def day16a(s):
-	possible, _ = day16(s)
+	possible, _ = _day16(s)
 	return sum(1 for a in possible if len(a) >= 3)
 
 
 def day16b(s):
-	possible, instruction = day16(s)
+	possible, instruction = _day16(s)
 	ops = {op for op, _, _, _ in instruction}
 	opcodes = [None] * len(ops)
 	while not all(len(a) == 1 for a in possible):
@@ -657,38 +649,12 @@ def day23b(s):
 		x1, x2 = x - xd, x + xd
 		y1, y2 = y - yd, y + yd
 		z1, z2 = z - zd, z + zd
-		print(res,
-				x - xd, x + xd,
-				y - yd, y + yd,
-				z - zd, z + zd)
+		# print(res,
+		# 		x - xd, x + xd,
+		# 		y - yd, y + yd,
+		# 		z - zd, z + zd)
 	return abs(x) + abs(y) + abs(z)
 
 
-def benchmark():
-	import timeit
-	for name in list(globals()):
-		match = re.match(r'day(\d+)[ab]', name)
-		if match is not None:
-			time = timeit.timeit(
-					'%s(inp)' % name,
-					setup='inp = open("i%s").read().rstrip("\\n")'
-						% match.group(1),
-					number=1,
-					globals=globals())
-			print('%s\t%5.2fs' % (name, time))
-
-
-def main():
-	if len(sys.argv) > 1 and sys.argv[1] == 'benchmark':
-		benchmark()
-	elif len(sys.argv) > 1 and sys.argv[1].startswith('day'):
-		inp = sys.stdin if len(sys.argv) == 2 else open(sys.argv[2])
-		print(globals()[sys.argv[1]](inp.read().rstrip('\n')))
-	else:
-		raise ValueError('unrecognized command. '
-				'usage: python3 adventofcode.py day[1-25][ab] < input'
-				'or: python3 adventofcode.py benchmark')
-
-
 if __name__ == '__main__':
-	main()
+	main(globals())

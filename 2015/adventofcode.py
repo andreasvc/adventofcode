@@ -4,9 +4,9 @@ import sys
 import operator
 import itertools
 import functools
-from collections import Counter, defaultdict
 import numpy as np
-from numba import njit
+sys.path.append('..')
+from common import main
 
 
 def day1a(s):
@@ -25,15 +25,7 @@ def day1b(s):
 			return n
 
 
-def day2a(s):
-	return day2(s)[0]
-
-
-def day2b(s):
-	return day2(s)[1]
-
-
-def day2(s):
+def _day2(s):
 	inp = [tuple(int(a) for a in line.split('x'))
 			for line in s.splitlines()]
 	paper = ribbon = 0
@@ -45,7 +37,15 @@ def day2(s):
 	return paper, ribbon
 
 
-def day3(s):
+def day2a(s):
+	return _day2(s)[0]
+
+
+def day2b(s):
+	return _day2(s)[1]
+
+
+def _day3(s):
 	x = y = 0
 	seen = {(0, 0)}
 	for a in s:
@@ -62,28 +62,28 @@ def day3(s):
 
 
 def day3a(s):
-	return len(day3(s))
+	return len(_day3(s))
 
 
 def day3b(s):
-	return len(day3(s[::2]) | day3(s[1::2]))
+	return len(_day3(s[::2]) | _day3(s[1::2]))
 
 
-def day4a(s):
-	return day4(s.encode('ascii'), 5 * '0')
-
-
-def day4b(s):
-	return day4(s.encode('ascii'), 6 * '0')
-
-
-def day4(s, prefix):
+def _day4(s, prefix):
 	import hashlib
 	n, x = 0, ''
 	while not x.startswith(prefix):
 		n += 1
 		x = hashlib.md5(b'%s%d' % (s, n)).hexdigest()
 	return n
+
+
+def day4a(s):
+	return _day4(s.encode('ascii'), 5 * '0')
+
+
+def day4b(s):
+	return _day4(s.encode('ascii'), 6 * '0')
 
 
 def day5a(s):
@@ -104,7 +104,7 @@ def day5b(s):
 
 
 def day6a(s):
-	lights = np.zeros((1000, 1000), dtype=np.bool)
+	lights = np.zeros((1000, 1000), dtype=bool)
 	for line in s.splitlines():
 		fields = line.split()
 		if line.startswith('turn'):
@@ -140,7 +140,7 @@ def day6b(s):
 	return lights.sum().sum()
 
 
-def day7(s, overrideb=None):
+def _day7(s, overrideb=None):
 	x = {'0': 0, '1': 1}
 	lines = s.splitlines()
 	while lines:
@@ -171,11 +171,11 @@ def day7(s, overrideb=None):
 
 
 def day7a(s):
-	return day7(s)['a']
+	return _day7(s)['a']
 
 
 def day7b(s):
-	return day7(s, overrideb=day7(s)['a'])['a']
+	return _day7(s, overrideb=_day7(s)['a'])['a']
 
 
 def day8a(s):
@@ -189,7 +189,7 @@ def day8b(s):
 			for line in s.splitlines())
 
 
-def day9(s, func):
+def _day9(s, func):
 	dists = {(f[0], f[2]): int(f[4]) for f in
 			(line.split() for line in s.splitlines())}
 	for a, b in list(dists):
@@ -201,27 +201,27 @@ def day9(s, func):
 
 
 def day9a(s):
-	return day9(s, min)
+	return _day9(s, min)
 
 
 def day9b(s):
-	return day9(s, max)
+	return _day9(s, max)
 
 
-def day10a(s):
-	return day10(s, 40)
-
-
-def day10b(s):
-	return day10(s, 50)
-
-
-def day10(s, iterations):
+def _day10(s, iterations):
 	for n in range(iterations):
 		s = ''.join(
 				'%d%s' % (len(m.group(0)), m.group(1))
 				for m in re.finditer(r'([0-9])\1*', s))
 	return len(s)
+
+
+def day10a(s):
+	return _day10(s, 40)
+
+
+def day10b(s):
+	return _day10(s, 50)
 
 
 def day11a(s):
@@ -263,15 +263,7 @@ def day12b(s):
 	return traverse(json.loads(s))
 
 
-def day13a(s):
-	return day13(s)
-
-
-def day13b(s):
-	return day13(s, includeself=True)
-
-
-def day13(s, includeself=False):
+def _day13(s, includeself=False):
 	data = {(fields[0], fields[-1]):
 				int(fields[3]) if fields[2] == 'gain' else -int(fields[3])
 			for fields in
@@ -284,6 +276,14 @@ def day13(s, includeself=False):
 			for perm in
 				(perm + perm[0:1] + perm[::-1] for perm
 				in itertools.permutations(names, len(names))))
+
+
+def day13a(s):
+	return _day13(s)
+
+
+def day13b(s):
+	return _day13(s, includeself=True)
 
 
 def day14a(s):
@@ -325,7 +325,7 @@ def day15a(s):
 
 	data = {name:
 			np.array([int(a.split()[1]) for a in fields.split(', ')
-				if not a.startswith('calories')], dtype=np.int)
+				if not a.startswith('calories')], dtype=int)
 			for name, fields in
 			(line.split(':', 1) for line in s.splitlines())}
 	return max(
@@ -340,7 +340,7 @@ def day15b(s):
 
 	data = {name:
 			np.array([int(a.split()[1]) for a in fields.split(', ')],
-				dtype=np.int)
+				dtype=int)
 			for name, fields in
 			(line.split(':', 1) for line in s.splitlines())}
 	return max(
@@ -408,7 +408,7 @@ def day17b(s, goal=150):
 
 def day18a(s):
 	data = np.array([[a == '#' for a in line]
-			for line in s.splitlines()], dtype=np.bool)
+			for line in s.splitlines()], dtype=bool)
 	new = np.zeros(data.shape)
 	for n in range(100):
 		for x in range(data.shape[0]):
@@ -426,7 +426,7 @@ def day18a(s):
 
 def day18b(s):
 	data = np.array([[a == '#' for a in line]
-			for line in s.splitlines()], dtype=np.bool)
+			for line in s.splitlines()], dtype=bool)
 	new = np.zeros(data.shape)
 	for n in range(100):
 		data[0, 0] = data[data.shape[0] - 1, 0] = 1
@@ -622,7 +622,6 @@ def day22a(s):
 			[line.split(':')[0] for line in s.splitlines()],
 			[int(line.split(':')[1]) for line in s.splitlines()]))
 	spells = 'missile drain shield poison recharge'.split()
-	result = []
 	for size in range(9):
 		for comb in itertools.product(spells, repeat=size):
 			m = _day22(comb, boss.copy())
@@ -635,7 +634,6 @@ def day22b(s):
 			[line.split(':')[0] for line in s.splitlines()],
 			[int(line.split(':')[1]) for line in s.splitlines()]))
 	spells = 'missile drain shield poison recharge'.split()
-	ans1, ans2 = [], []
 	for size in range(9):
 		for comb in itertools.product(spells, repeat=size):
 			m = _day22(comb, boss.copy(), hard=True)
@@ -737,7 +735,7 @@ x LSHIFT 2 -> f
 y RSHIFT 2 -> g
 NOT x -> h
 NOT y -> i"""
-	assert day7(inp) == {'0': 0, '1': 1,
+	assert _day7(inp) == {'0': 0, '1': 1,
 			'd': 72,
 			'e': 507,
 			'f': 492,
@@ -763,33 +761,5 @@ Dancer can fly 16 km/s for 11 seconds, but then must rest for 162 seconds."""
 	assert day14b(s, 1000) == 689
 
 
-def benchmark():
-	import timeit
-	for n in range(1, 25 + 1):
-		print('day%d' % n, end='')
-		for part in 'ab':
-			fun = 'day%d%s' % (n, part)
-			time = timeit.timeit(
-					'%s(inp)' % fun,
-					setup='inp = open("i%d").read().rstrip("\\n")' % n,
-					number=1,
-					globals=globals())
-			print('\t%5.2fs' % time, end='')
-		print()
-
-
-def main():
-	if len(sys.argv) > 1 and sys.argv[1] == 'benchmark':
-		benchmark()
-	elif len(sys.argv) > 1 and sys.argv[1].startswith('day'):
-		with open('i' + sys.argv[1][3:].rstrip('ab') if len(sys.argv) == 2
-				else sys.argv[2]) as inp:
-			print(globals()[sys.argv[1]](inp.read().rstrip('\n')))
-	else:
-		raise ValueError('unrecognized command. '
-				'usage: python3 adventofcode.py day[1-25][ab] [input]'
-				'or: python3 adventofcode.py benchmark')
-
-
 if __name__ == '__main__':
-	main()
+	main(globals())

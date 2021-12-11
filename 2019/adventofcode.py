@@ -1,6 +1,4 @@
 """Advent of Code 2019. http://adventofcode.com/2019 """
-import os
-import re
 import sys
 import itertools
 import math
@@ -9,6 +7,8 @@ import math
 from collections import defaultdict  # Counter
 import numpy as np
 # from numba import njit
+sys.path.append('..')
+from common import main
 
 
 def day1a(s):
@@ -27,7 +27,7 @@ def day1b(s):
 	return total
 
 
-def day2(nums, a, b):
+def _day2(nums, a, b):
 	nums[1] = a
 	nums[2] = b
 	pc = 0
@@ -48,14 +48,14 @@ def day2(nums, a, b):
 
 def day2a(s):
 	nums = [int(a) for a in s.split(',')]
-	return day2(nums, 12, 2)
+	return _day2(nums, 12, 2)
 
 
 def day2b(s):
 	for a in range(100):
 		for b in range(100):
 			nums = [int(a) for a in s.split(',')]
-			if day2(nums, a, b) == 19690720:
+			if _day2(nums, a, b) == 19690720:
 				return 100 * a + b
 
 
@@ -451,32 +451,5 @@ def interpreter(nums, inp, incremental=False, pc=0, rb=0):
 	return outputs, -1, rb  # -1=halt
 
 
-def benchmark():
-	import timeit
-	for name in list(globals()):
-		match = re.match(r'day(\d+)[ab]', name)
-		if match is not None and os.path.exists('i%s' % match.group(1)):
-			time = timeit.timeit(
-					'%s(inp)' % name,
-					setup='inp = open("i%s").read().rstrip("\\n")'
-						% match.group(1),
-					number=1,
-					globals=globals())
-			print('%s\t%5.2fs' % (name, time))
-
-
-def main():
-	if len(sys.argv) > 1 and sys.argv[1] == 'benchmark':
-		benchmark()
-	elif len(sys.argv) > 1 and sys.argv[1].startswith('day'):
-		with open('i' + sys.argv[1][3:].rstrip('ab') if len(sys.argv) == 2
-				else sys.argv[2]) as inp:
-			print(globals()[sys.argv[1]](inp.read().rstrip('\n')))
-	else:
-		raise ValueError('unrecognized command. '
-				'usage: python3 adventofcode.py day[1-25][ab] [input]'
-				'or: python3 adventofcode.py benchmark')
-
-
 if __name__ == '__main__':
-	main()
+	main(globals())

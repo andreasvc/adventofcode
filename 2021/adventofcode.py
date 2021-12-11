@@ -1,5 +1,4 @@
 """Advent of Code 2021. http://adventofcode.com/2021 """
-import os
 import re
 import sys
 # import operator
@@ -8,6 +7,8 @@ import itertools
 from collections import Counter  #, defaultdict
 import numpy as np
 # from numba import njit
+sys.path.append('..')
+from common import main
 
 
 def day1a(s):
@@ -125,13 +126,10 @@ def _day5(s, diagonals=True):
 	for n in range(lines.shape[0]):
 		x1, y1, x2, y2 = lines[n, :]
 		if diagonals or x1 == x2 or y1 == y2:
-			xd = 1 if x2 >= x1 else - 1
-			yd = 1 if y2 >= y1 else - 1
-			x, y = x1, y1
+			xd = 0 if x1 == x2 else 1 if x2 > x1 else - 1
+			yd = 0 if y1 == y2 else 1 if y2 > y1 else - 1
 			for m in range(max(abs(x2 - x1), abs(y2 - y1)) + 1):
-				grid[y, x] += 1
-				x += xd * (x1 != x2)
-				y += yd * (y1 != y2)
+				grid[y1 + yd * m, x1 + xd * m] += 1
 	return (grid >= 2).flatten().sum()
 
 
@@ -283,7 +281,6 @@ def day10a(s):
 				if stack and mapping[stack[-1]] == char:
 					stack.pop()
 				else:
-					print(n, char, scores[char], line)
 					result += scores[char]
 					break
 	return result
@@ -316,11 +313,11 @@ def _day11(s):
 	grid = np.array([[int(a) for a in line]
 			for line in s.splitlines()], dtype=int)
 	numflashes = 0
-	while grid.any().any():
+	while grid.any():
 		grid += 1
 		flashing = list(zip(*(grid > 9).nonzero()))
 		flashed = set(flashing)
-		while(flashing):
+		while flashing:
 			x, y = flashing.pop()
 			numflashes += 1
 			x1, x2 = max(x - 1, 0), min(grid.shape[0], x + 2)
@@ -344,32 +341,5 @@ def day11b(s):
 			return n
 
 
-def benchmark():
-	import timeit
-	for name in list(globals()):
-		match = re.match(r'day(\d+)[ab]?', name)
-		if match is not None and os.path.exists('i%s' % match.group(1)):
-			time = timeit.timeit(
-					'%s(inp)' % name,
-					setup='inp = open("i%s").read().rstrip("\\n")'
-						% match.group(1),
-					number=1,
-					globals=globals())
-			print('%s\t%5.2fs' % (name, time))
-
-
-def main():
-	if len(sys.argv) > 1 and sys.argv[1] == 'benchmark':
-		benchmark()
-	elif len(sys.argv) > 1 and sys.argv[1].startswith('day'):
-		with open('i' + sys.argv[1][3:].rstrip('ab') if len(sys.argv) == 2
-				else sys.argv[2]) as inp:
-			print(globals()[sys.argv[1]](inp.read().rstrip('\n')))
-	else:
-		print('unrecognized command.\n'
-				'usage: python3 adventofcode.py day[1-25][ab] [input]\n'
-				'or: python3 adventofcode.py benchmark')
-
-
 if __name__ == '__main__':
-	main()
+	main(globals())
