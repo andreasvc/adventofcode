@@ -5,7 +5,6 @@ import sys
 import itertools
 # from functools import reduce
 from collections import Counter  #, defaultdict
-import hashlib
 # import numpy as np
 # from numba import njit
 sys.path.append('..')
@@ -118,7 +117,8 @@ def day4(s):
 
 
 def _day5(s):
-	hasher = hashlib.md5()
+	from _md5 import md5  # https://stackoverflow.com/a/60263898/338811
+	hasher = md5()
 	hasher.update(s.encode('ascii'))
 	m = 0
 	while True:

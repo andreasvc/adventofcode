@@ -70,20 +70,24 @@ def day3b(s):
 
 
 def _day4(s, prefix):
-	import hashlib
+	from _md5 import md5  # https://stackoverflow.com/a/60263898/338811
+	hasher = md5()
+	hasher.update(s.encode('ascii'))
 	n, x = 0, ''
 	while not x.startswith(prefix):
 		n += 1
-		x = hashlib.md5(b'%s%d' % (s, n)).hexdigest()
+		newhash = hasher.copy()
+		newhash.update(b'%d' % n)
+		x = newhash.hexdigest()
 	return n
 
 
 def day4a(s):
-	return _day4(s.encode('ascii'), 5 * '0')
+	return _day4(s, 5 * '0')
 
 
 def day4b(s):
-	return _day4(s.encode('ascii'), 6 * '0')
+	return _day4(s, 6 * '0')
 
 
 def day5a(s):
