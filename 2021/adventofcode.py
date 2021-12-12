@@ -341,7 +341,7 @@ def day11b(s):
 			return n
 
 
-def _day12(s, allowtwice=False):
+def _day12(s, twice=True):
 	graph = defaultdict(list)
 	for line in s.splitlines():
 		a, b = line.split('-')
@@ -349,17 +349,19 @@ def _day12(s, allowtwice=False):
 			graph[a].append(b)
 		if a != 'start':
 			graph[b].append(a)
-	agenda = [(['start'], False)]
+	agenda = [('start', set(), twice)]
 	result = 0
 	while agenda:
-		route, twice = agenda.pop()
-		for a in graph[route[-1]]:
+		pos, route, twice = agenda.pop()
+		for a in graph[pos]:
 			if a == 'end':
 				result += 1
-			elif a.isupper() or a not in route:
-				agenda.append((route + [a], twice))
-			elif allowtwice and not twice:
-				agenda.append((route + [a], True))
+			elif a.isupper():
+				agenda.append((a, route, twice))
+			elif a not in route:
+				agenda.append((a, route | {a}, twice))
+			elif not twice:
+				agenda.append((a, route, True))
 	return result
 
 
@@ -368,7 +370,7 @@ def day12a(s):
 
 
 def day12b(s):
-	return _day12(s, allowtwice=True)
+	return _day12(s, twice=False)
 
 
 if __name__ == '__main__':
