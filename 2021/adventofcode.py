@@ -4,7 +4,7 @@ import sys
 # import operator
 import itertools
 # from functools import reduce
-from collections import Counter  #, defaultdict
+from collections import Counter, defaultdict
 import numpy as np
 # from numba import njit
 sys.path.append('..')
@@ -339,6 +339,36 @@ def day11b(s):
 	for n, (_, grid) in enumerate(_day11(s), 1):
 		if not grid.any().any():
 			return n
+
+
+def _day12(s, allowtwice=False):
+	graph = defaultdict(list)
+	for line in s.splitlines():
+		a, b = line.split('-')
+		if b != 'start':
+			graph[a].append(b)
+		if a != 'start':
+			graph[b].append(a)
+	agenda = [(['start'], False)]
+	result = 0
+	while agenda:
+		route, twice = agenda.pop()
+		for a in graph[route[-1]]:
+			if a == 'end':
+				result += 1
+			elif a.isupper() or a not in route:
+				agenda.append((route + [a], twice))
+			elif allowtwice and not twice:
+				agenda.append((route + [a], True))
+	return result
+
+
+def day12a(s):
+	return _day12(s)
+
+
+def day12b(s):
+	return _day12(s, allowtwice=True)
 
 
 if __name__ == '__main__':
