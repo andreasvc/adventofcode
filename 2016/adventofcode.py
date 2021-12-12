@@ -4,7 +4,7 @@ import sys
 # import operator
 import itertools
 # from functools import reduce
-from collections import Counter  #, defaultdict
+from collections import Counter, defaultdict
 # import numpy as np
 # from numba import njit
 sys.path.append('..')
@@ -117,7 +117,10 @@ def day4(s):
 
 
 def _day5(s):
-	from _md5 import md5  # https://stackoverflow.com/a/60263898/338811
+	try:
+		from _md5 import md5  # https://stackoverflow.com/a/60263898/338811
+	except ImportError:
+		from hashlib import md5
 	hasher = md5()
 	hasher.update(s.encode('ascii'))
 	m = 0
@@ -269,6 +272,45 @@ def day9b(s):
 		return result
 
 	return decompress(s)
+
+
+def day10(s):
+	state = defaultdict(list)
+	outputs = {}
+	lowhigh = {}
+	for line in s.splitlines():
+		x = line.split()
+		if line.startswith('value'):
+			val, bot = int(x[1]), int(x[-1])
+			state[bot].append(val)
+		elif line.startswith('bot'):
+			bot, low, high = int(x[1]), int(x[6]), int(x[-1])
+			lowhigh[bot] = (x[5], low), (x[-2], high)
+		else:
+			raise ValueError
+	while True:
+		for bot, chips in list(state.items()):
+			if len(chips) == 2:
+				if 61 in chips and 17 in chips:
+					result1 = bot
+				if bot in lowhigh:
+					low, high = lowhigh[bot]
+					if low[0] == 'output':
+						outputs[low[1]] = min(chips)
+					else:
+						state[low[1]].append(min(chips))
+					if high[0] == 'output':
+						outputs[high[1]] = max(chips)
+					else:
+						state[high[1]].append(max(chips))
+					state[bot] = []
+				else:
+					raise ValueError
+				break
+		else:
+			break
+	return result1, outputs[0] * outputs[1] * outputs[2]
+
 
 
 if __name__ == '__main__':
