@@ -373,5 +373,33 @@ def day12b(s):
 	return _day12(s, twice=False)
 
 
+def _day13(s, firstonly=True):
+	fst, sec = s.split('\n\n')
+	xcoords = [int(a.split(',')[0]) for a in fst.splitlines()]
+	ycoords = [int(a.split(',')[1]) for a in fst.splitlines()]
+	grid = np.zeros((max(ycoords) + 1, max(xcoords) + 1), dtype=int)
+	grid[ycoords, xcoords] = 1
+	for fold in sec.splitlines():
+		axis, pos = fold.split()[2].split('=')
+		pos = int(pos)
+		if axis == 'x':
+			grid = grid[:, :pos] + np.fliplr(grid[:, pos + 1:])
+		elif axis == 'y':
+			grid = grid[:pos, :] + np.flipud(grid[pos + 1:, :])
+		if firstonly:
+			return (grid !=0).sum()
+	return '\n'.join(''.join('#' if grid[y, x] else ' '
+				for x in range(grid.shape[1]))
+			for y in range(grid.shape[0]))
+
+
+def day13a(s):
+	return _day13(s)
+
+
+def day13b(s):
+	return _day13(s, firstonly=False)
+
+
 if __name__ == '__main__':
 	main(globals())
