@@ -401,5 +401,43 @@ def day13b(s):
 	return _day13(s, firstonly=False)
 
 
+def day14a(s):
+	template, rules = s.split('\n\n')
+	rules = dict(a.split(' -> ') for a in rules.splitlines())
+	x = template
+	for n in range(10):
+		new = ''
+		for a, b in zip(x, x[1:]):
+			if a + b in rules:
+				new += a + rules[a + b]
+			else:
+				new += a
+		new += x[-1]
+		x = new
+	cnt = Counter(x)
+	x = cnt.most_common()
+	return x[0][1] - x[-1][1]
+
+
+def day14b(s):
+	template, rules = s.split('\n\n')
+	rules = {tuple(a.split(' -> ')[0]): a.split(' -> ')[1]
+			for a in rules.splitlines()}
+	state = Counter(zip(template, template[1:]))
+	cnt = Counter(template)
+	for n in range(40):
+		new = Counter()
+		for ab in list(state):
+			if ab in rules:
+				x = state.pop(ab)
+				c = rules[ab]
+				new[ab[0], c] += x
+				new[c, ab[1]] += x
+				cnt[c] += x
+		state.update(new)
+	x = cnt.most_common()
+	return x[0][1] - x[-1][1]
+
+
 if __name__ == '__main__':
 	main(globals())
