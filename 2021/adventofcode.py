@@ -1,10 +1,10 @@
 """Advent of Code 2021. http://adventofcode.com/2021 """
 import re
 import sys
-import heapq
 # import operator
 import itertools
 # from functools import reduce
+from heapq import heappop, heappush
 from collections import Counter, defaultdict
 import numpy as np
 # from numba import njit
@@ -441,20 +441,18 @@ def day14b(s):
 
 
 def _day15(dists):
-	agenda = [(0, 0, 0)]
-	seen = np.zeros(dists.shape, dtype=bool)
-	visited = np.zeros(dists.shape, dtype=bool)
+	agenda = [[0, 0, 0]]
 	best = np.zeros(dists.shape, dtype=int) + 9999999
 	best[0, 0] = 0
+	seen = np.zeros((dists.shape[0] + 1, dists.shape[1] + 1), dtype=bool)
+	seen[:, -1] = seen[-1, :] = True
 	endy, endx = dists.shape
 	while agenda:
-		cost, x, y = heapq.heappop(agenda)
-		visited[x, y] = True
-		for newx, newy in [(x, y + 1), (x + 1, y), (x, y - 1), (x - 1, y)]:
-			if (0 <= newx < endx and 0 <= newy < endy
-					and not seen[newx, newy] and not visited[newx, newy]):
+		cost, x, y = heappop(agenda)
+		for newx, newy in [[x, y + 1], [x + 1, y], [x, y - 1], [x - 1, y]]:
+			if not seen[newx, newy]:
 				newcost = cost + dists[newy, newx]
-				heapq.heappush(agenda, (newcost, newx, newy))
+				heappush(agenda, [newcost, newx, newy])
 				best[newx, newy] = newcost
 				seen[newx, newy] = True
 	return best[endx - 1, endy - 1]
