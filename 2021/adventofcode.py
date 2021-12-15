@@ -1,6 +1,7 @@
 """Advent of Code 2021. http://adventofcode.com/2021 """
 import re
 import sys
+import heapq
 # import operator
 import itertools
 # from functools import reduce
@@ -437,6 +438,46 @@ def day14b(s):
 		state.update(new)
 	x = cnt.most_common()
 	return x[0][1] - x[-1][1]
+
+
+def _day15(dists):
+	agenda = [(0, 0, 0)]
+	seen = np.zeros(dists.shape, dtype=bool)
+	visited = np.zeros(dists.shape, dtype=bool)
+	best = np.zeros(dists.shape, dtype=int) + 9999999
+	best[0, 0] = 0
+	endy, endx = dists.shape
+	while agenda:
+		cost, x, y = heapq.heappop(agenda)
+		visited[x, y] = True
+		for newx, newy in [(x, y + 1), (x + 1, y), (x, y - 1), (x - 1, y)]:
+			if (0 <= newx < endx and 0 <= newy < endy
+					and not seen[newx, newy] and not visited[newx, newy]):
+				newcost = cost + dists[newy, newx]
+				heapq.heappush(agenda, (newcost, newx, newy))
+				best[newx, newy] = newcost
+				seen[newx, newy] = True
+	return best[endx - 1, endy - 1]
+
+
+def day15a(s):
+	dists = np.array([[int(dist) for x, dist in enumerate(line)]
+			for y, line in enumerate(s.splitlines())], dtype=int)
+	return _day15(dists)
+
+
+def day15b(s):
+	dists = [[int(dist) for x, dist in enumerate(line)]
+			for y, line in enumerate(s.splitlines())]
+	dists = np.array(dists, dtype=int)
+	endy, endx = dists.shape
+	X = np.zeros((endy * 5, endx * 5), dtype=int)
+	for row in range(5):
+		for col in range(5):
+			n = row + col
+			X[row * endy:(row + 1) * endy,
+					col * endx:(col + 1) * endx] = (dists + n - 1) % 9 + 1
+	return _day15(X)
 
 
 if __name__ == '__main__':
