@@ -1,9 +1,8 @@
 """Advent of Code 2021. http://adventofcode.com/2021 """
 import re
 import sys
-# import operator
+from operator import lt, gt, eq
 import itertools
-# from functools import reduce
 from heapq import heappop, heappush
 from collections import Counter, defaultdict
 import numpy as np
@@ -478,11 +477,16 @@ def day15b(s):
 	return _day15(X)
 
 
+def prod(seq, start=1):
+	for a in seq:
+		start *= a
+	return start
+
+
 def _day16(x):
-	version, typeid = x[:3], x[3:6]
-	result = int(version, 2)
-	n = 6
-	if typeid == '100':  # literal value
+	version, typeid = int(x[:3], 2), int(x[3:6], 2)
+	result, n = version, 6
+	if typeid == 4:  # literal value
 		tmp = ''
 		while x[n] == '1':
 			tmp += x[n + 1:n + 5]
@@ -492,47 +496,24 @@ def _day16(x):
 		n += 5
 		return n, result, val
 	elif x[n] == '0':  # n bits of subpackets
-		length = int(x[n + 1:n + 16], 2)
+		goal = n + 16 + int(x[n + 1:n + 16], 2)
 		n += 16
-		read = 0
 		vals = []
-		while read < length:
-			nn, rresult, val = _day16(x[n + read:])
-			read += nn
-			result += rresult
-			vals.append(val)
-		n += length
-		assert read == length
-	elif x[n] == '1':  # n subpackets
-		subpackets = int(x[n + 1:n + 12], 2)
-		n += 12
-		vals = []
-		for _ in range(subpackets):
+		while n < goal:
 			nn, rresult, val = _day16(x[n:])
 			n += nn
 			result += rresult
 			vals.append(val)
-	if typeid == '000':
-		val = sum(vals)
-	elif typeid == '001':
-		val = 1
-		for a in vals:
-			val *= a
-	elif typeid == '010':
-		val = min(vals)
-	elif typeid == '011':
-		val = max(vals)
-	elif typeid == '101':
-		val = int(vals[0] > vals[1])
-		assert len(vals) == 2
-	elif typeid == '110':
-		val = int(vals[0] < vals[1])
-		assert len(vals) == 2
-	elif typeid == '111':
-		val = int(vals[0] == vals[1])
-		assert len(vals) == 2
-	else:
-		raise ValueError(typeid)
+	elif x[n] == '1':  # n subpackets
+		n += 12
+		vals = []
+		for _ in range(int(x[n - 11:n], 2)):
+			nn, rresult, val = _day16(x[n:])
+			n += nn
+			result += rresult
+			vals.append(val)
+	arrops, binops = [sum, prod, min, max, int], [gt, lt, eq]
+	val = arrops[typeid](vals) if typeid < 5 else binops[typeid - 5](*vals)
 	return n, result, val
 
 
