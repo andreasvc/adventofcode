@@ -3,7 +3,6 @@ import re
 import sys
 from operator import lt, gt, eq
 import itertools
-from heapq import heappop, heappush
 from collections import Counter, defaultdict
 import numpy as np
 # from numba import njit
@@ -440,21 +439,35 @@ def day14b(s):
 
 
 def _day15(dists):
-	agenda = [[0, 0, 0]]
-	best = np.zeros(dists.shape, dtype=int) + 9999999
-	best[0, 0] = 0
+	agenda = [[0, 0, 0]] + [[] for _ in range(9)]
 	seen = np.zeros((dists.shape[0] + 1, dists.shape[1] + 1), dtype=bool)
 	seen[:, -1] = seen[-1, :] = True
-	endy, endx = dists.shape
-	while agenda:
-		cost, x, y = heappop(agenda)
-		for newx, newy in [[x, y + 1], [x + 1, y], [x, y - 1], [x - 1, y]]:
-			if not seen[newx, newy]:
-				newcost = cost + dists[newy, newx]
-				heappush(agenda, [newcost, newx, newy])
-				best[newx, newy] = newcost
-				seen[newx, newy] = True
-	return best[endx - 1, endy - 1]
+	endy, endx = dists.shape[0] - 1, dists.shape[1] - 1
+	for ag in itertools.cycle(agenda):
+		while ag:
+			cost, y, x = ag.pop(), ag.pop(), ag.pop()
+			if x == endx and y == endy:
+				return cost
+			newx = x + 1
+			if not seen[y, newx]:
+				seen[y, newx] = True
+				newcost = cost + dists[y, newx]
+				agenda[newcost % 10].extend([newx, y, newcost])
+			newx -= 2
+			if not seen[y, newx]:
+				seen[y, newx] = True
+				newcost = cost + dists[y, newx]
+				agenda[newcost % 10].extend([newx, y, newcost])
+			newy = y + 1
+			if not seen[newy, x]:
+				seen[newy, x] = True
+				newcost = cost + dists[newy, x]
+				agenda[newcost % 10].extend([x, newy, newcost])
+			newy -= 2
+			if not seen[newy, x]:
+				seen[newy, x] = True
+				newcost = cost + dists[newy, x]
+				agenda[newcost % 10].extend([x, newy, newcost])
 
 
 def day15a(s):
