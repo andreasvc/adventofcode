@@ -478,5 +478,99 @@ def day15b(s):
 	return _day15(X)
 
 
+def _day16(x):
+	version, typeid = x[:3], x[3:6]
+	result = int(version, 2)
+	n = 6
+	if typeid == '100':  # literal value
+		tmp = ''
+		while x[n] == '1':
+			tmp += x[n + 1:n + 5]
+			n += 5
+		tmp += x[n + 1:n + 5]
+		val = int(tmp, 2)
+		n += 5
+		return n, result, val
+	elif x[n] == '0':  # n bits of subpackets
+		length = int(x[n + 1:n + 16], 2)
+		n += 16
+		read = 0
+		vals = []
+		while read < length:
+			nn, rresult, val = _day16(x[n + read:])
+			read += nn
+			result += rresult
+			vals.append(val)
+		n += length
+		assert read == length
+	elif x[n] == '1':  # n subpackets
+		subpackets = int(x[n + 1:n + 12], 2)
+		n += 12
+		vals = []
+		for _ in range(subpackets):
+			nn, rresult, val = _day16(x[n:])
+			n += nn
+			result += rresult
+			vals.append(val)
+	if typeid == '000':
+		val = sum(vals)
+	elif typeid == '001':
+		val = 1
+		for a in vals:
+			val *= a
+	elif typeid == '010':
+		val = min(vals)
+	elif typeid == '011':
+		val = max(vals)
+	elif typeid == '101':
+		val = int(vals[0] > vals[1])
+		assert len(vals) == 2
+	elif typeid == '110':
+		val = int(vals[0] < vals[1])
+		assert len(vals) == 2
+	elif typeid == '111':
+		val = int(vals[0] == vals[1])
+		assert len(vals) == 2
+	else:
+		raise ValueError(typeid)
+	return n, result, val
+
+
+def day16a(s):
+	"""
+	>>> day16a('8A004A801A8002F478')
+	16
+	>>> day16a('620080001611562C8802118E34')
+	12
+	>>> day16a('C0015000016115A2E0802F182340')
+	23
+	>>> day16a('A0016C880162017C3686B18A3D4780')
+	31"""
+	x = ''.join(bin(int(a, 16))[2:].zfill(4) for a in s.strip())
+	return _day16(x)[1]
+
+
+def day16b(s):
+	"""
+	>>> day16b('C200B40A82')
+	3
+	>>> day16b('04005AC33890')
+	54
+	>>> day16b('880086C3E88112')
+	7
+	>>> day16b('CE00C43D881120')
+	9
+	>>> day16b('D8005AC2A8F0')
+	1
+	>>> day16b('F600BC2D8F')
+	0
+	>>> day16b('9C005AC2F8F0')
+	0
+	>>> day16b('9C0141080250320F1802104A08')
+	1"""
+	x = ''.join(bin(int(a, 16))[2:].zfill(4) for a in s.strip())
+	return _day16(x)[2]
+
+
 if __name__ == '__main__':
 	main(globals())
