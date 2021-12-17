@@ -566,5 +566,40 @@ def day16b(s):
 	return _day16(x)[2]
 
 
+# @njit(cache=True)
+def _day17(x1, x2, y1, y2):
+	yymax = 0
+	cnt = 0
+	for velx in range(x2 + 1):
+		for vy in range(-abs(y1), abs(y1)):
+			vx = velx
+			x = y = ymax = 0
+			while True:
+				x += vx
+				y += vy
+				vx -= (vx > 0) - (vx < 0)
+				vy -= 1
+				if y > ymax:
+					ymax = y
+				if x1 <= x <= x2 and y1 <= y <= y2:
+					cnt += 1
+					if ymax > yymax:
+						yymax = ymax
+					break
+				elif y < 2 * y2 or x > 2 * x2:
+					break
+	return yymax, cnt
+
+
+def day17a(s):
+	x1, x2, y1, y2 = [int(a) for a in re.findall(r'-?\d+', s)]
+	return _day17(x1, x2, y1, y2)[0]
+
+
+def day17b(s):
+	x1, x2, y1, y2 = [int(a) for a in re.findall(r'-?\d+', s)]
+	return _day17(x1, x2, y1, y2)[1]
+
+
 if __name__ == '__main__':
 	main(globals())
