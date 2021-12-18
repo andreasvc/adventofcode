@@ -1,6 +1,7 @@
 """Advent of Code 2021. http://adventofcode.com/2021 """
 import re
 import sys
+import json
 from operator import lt, gt, eq
 import itertools
 from collections import Counter, defaultdict
@@ -599,6 +600,162 @@ def day17a(s):
 def day17b(s):
 	x1, x2, y1, y2 = [int(a) for a in re.findall(r'-?\d+', s)]
 	return _day17(x1, x2, y1, y2)[1]
+
+
+def add(a, b):
+	"""
+	>>> add([[[[4,3],4],4],[7,[[8,4],9]]], [1,1])
+	[[[[0, 7], 4], [[7, 8], [6, 0]]], [8, 1]]
+	>>> add([[[[4,0],[5,4]],[[7,7],[6,0]]],[[8,[7,7]],[[7,9],[5,0]]]],
+	...			[[2,[[0,8],[3,4]]],[[[6,7],1],[7,[1,6]]]])
+	[[[[6, 7], [6, 7]], [[7, 7], [0, 7]]], [[[8, 7], [7, 7]], [[8, 8], [8, 0]]]]
+	>>> add([[[[7,0],[7,7]],[[7,7],[7,8]]],[[[7,7],[8,8]],[[7,7],[8,7]]]],
+	...		[7,[5,[[3,8],[1,4]]]])
+	[[[[7, 7], [7, 8]], [[9, 5], [8, 7]]], [[[6, 8], [0, 8]], [[9, 9], [9, 0]]]]
+	"""
+	result = [a, b]
+	while True:
+		didexplode = doexplode(result, result, 0, 4)
+		if didexplode:
+			result = didexplode
+			continue
+		didsplit = dosplit(result, 10)
+		if didsplit:
+			continue
+		return result
+
+
+def doexplode(tree, node, cur, maxdepth, digits=re.compile(r'\d+')):
+	"""Find leftmost node nested at maxdepth and explode it."""
+	if isinstance(node, list):
+		if cur >= maxdepth and all(isinstance(child, int) for child in node):
+			a, b = node
+			node[:] = [-1]  # create a unique value ...
+			resstr = str(tree)
+			i = resstr.index('[-1]')
+			resstr = resstr[:i] + '0' + resstr[i + 4:]
+			r = digits.search(resstr, pos=i + 1)
+			if r:
+				ii, jj = r.span()
+				x = int(resstr[ii:jj])
+				resstr = resstr[:ii] + str(x + b) +  resstr[jj:]
+			l = list(digits.finditer(resstr, 0, i))
+			if l:
+				ii, jj = l[-1].span()
+				x = int(resstr[ii:jj])
+				resstr = resstr[:ii] + str(x + a) +  resstr[jj:]
+			return json.loads(resstr)
+		for child in node:
+			res = doexplode(tree, child, cur + 1, maxdepth)
+			if res:
+				return res
+	return None
+
+
+def dosplit(node, maxval):
+	"""Find leftmost leaf with value >= maxval and split.
+	>>> node = [11, 1]
+	>>> dosplit(node, 10)
+	True
+	>>> node
+	[[5, 6], 1]
+	"""
+	for i, child in enumerate(node):
+		if isinstance(child, int):
+			if child >= maxval:
+				a = b = child // 2
+				b += child & 1
+				node[i] = [a, b]
+				return True
+		elif dosplit(child, maxval):
+			return True
+	return False
+
+
+def addlist(data):
+	"""
+	>>> addlist([[1, 1], [2, 2], [3, 3], [4, 4]])
+	[[[[1, 1], [2, 2]], [3, 3]], [4, 4]]
+	>>> addlist([[1, 1], [2, 2], [3, 3], [4, 4], [5, 5]])
+	[[[[3, 0], [5, 3]], [4, 4]], [5, 5]]
+	>>> addlist([[1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 6]])
+	[[[[5, 0], [7, 4]], [5, 5]], [6, 6]]
+	>>> data = [
+	...		[[[0,[4,5]],[0,0]],[[[4,5],[2,6]],[9,5]]],
+	...		[7,[[[3,7],[4,3]],[[6,3],[8,8]]]],
+	...		[[2,[[0,8],[3,4]]],[[[6,7],1],[7,[1,6]]]],
+	...		[[[[2,4],7],[6,[0,5]]],[[[6,8],[2,8]],[[2,1],[4,5]]]],
+	...		[7,[5,[[3,8],[1,4]]]],
+	...		[[2,[2,2]],[8,[8,1]]],
+	...		[2,9],
+	...		[1,[[[9,3],9],[[9,0],[0,7]]]],
+	...		[[[5,[7,4]],7],1],
+	...		[[[[4,2],2],6],[8,7]]]
+	>>> addlist(data)
+	[[[[8, 7], [7, 7]], [[8, 6], [7, 7]]], [[[0, 7], [6, 6]], [8, 7]]]
+	"""
+	result = data[0]
+	for a in data[1:]:
+		result = add(result, a)
+	return result
+
+
+def magnitude(node):
+	"""
+	>>> magnitude([[1,2],[[3,4],5]])
+	143
+	>>> magnitude([[[[0,7],4],[[7,8],[6,0]]],[8,1]])
+	1384
+	>>> magnitude([[[[1,1],[2,2]],[3,3]],[4,4]])
+	445
+	>>> magnitude([[[[3,0],[5,3]],[4,4]],[5,5]])
+	791
+	>>> magnitude([[[[5,0],[7,4]],[5,5]],[6,6]])
+	1137
+	>>> magnitude([[[[8,7],[7,7]],[[8,6],[7,7]]],[[[0,7],[6,6]],[8,7]]])
+	3488
+	"""
+	if isinstance(node, int):
+		return node
+	return 3 * magnitude(node[0]) + 2 * magnitude(node[1])
+
+
+def day18a(s):
+	"""
+	>>> s = ('[[[0,[5,8]],[[1,7],[9,6]]],[[4,[1,2]],[[1,4],2]]]\\n'
+	...			'[[[5,[2,8]],4],[5,[[9,9],0]]]\\n'
+	...			'[6,[[[6,2],[5,6]],[[7,6],[4,7]]]]\\n'
+	...			'[[[6,[0,7]],[0,9]],[4,[9,[9,0]]]]\\n'
+	...			'[[[7,[6,4]],[3,[1,3]]],[[[5,5],1],9]]\\n'
+	...			'[[6,[[7,3],[3,2]]],[[[3,8],[5,7]],4]]\\n'
+	...			'[[[[5,4],[7,7]],8],[[8,3],8]]\\n'
+	...			'[[9,3],[[9,9],[6,[4,9]]]]\\n'
+	...			'[[2,[[7,7],7]],[[5,8],[[9,3],[0,2]]]]\\n'
+	...			'[[[[5,2],5],[8,[3,7]]],[[5,[7,5]],[4,4]]]\\n')
+	>>> day18a(s)
+	4140
+	"""
+	data = [json.loads(line) for line in s.splitlines()]
+	return magnitude(addlist(data))
+
+
+def day18b(s):
+	"""
+	>>> s = ('[[[0,[5,8]],[[1,7],[9,6]]],[[4,[1,2]],[[1,4],2]]]\\n'
+	...			'[[[5,[2,8]],4],[5,[[9,9],0]]]\\n'
+	...			'[6,[[[6,2],[5,6]],[[7,6],[4,7]]]]\\n'
+	...			'[[[6,[0,7]],[0,9]],[4,[9,[9,0]]]]\\n'
+	...			'[[[7,[6,4]],[3,[1,3]]],[[[5,5],1],9]]\\n'
+	...			'[[6,[[7,3],[3,2]]],[[[3,8],[5,7]],4]]\\n'
+	...			'[[[[5,4],[7,7]],8],[[8,3],8]]\\n'
+	...			'[[9,3],[[9,9],[6,[4,9]]]]\\n'
+	...			'[[2,[[7,7],7]],[[5,8],[[9,3],[0,2]]]]\\n'
+	...			'[[[[5,2],5],[8,[3,7]]],[[5,[7,5]],[4,4]]]\\n')
+	>>> day18b(s)
+	3993
+	"""
+	return max(magnitude(add(json.loads(a), json.loads(b)))
+			for a, b in itertools.permutations(s.splitlines(), 2))
 
 
 if __name__ == '__main__':
