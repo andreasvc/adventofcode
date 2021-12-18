@@ -5,6 +5,7 @@ import sys
 import itertools
 # from functools import reduce
 from collections import Counter, defaultdict
+# from heapq import heappush, heappop
 # import numpy as np
 # from numba import njit
 sys.path.append('..')
@@ -280,37 +281,90 @@ def day10(s):
 	lowhigh = {}
 	for line in s.splitlines():
 		x = line.split()
-		if line.startswith('value'):
-			val, bot = int(x[1]), int(x[-1])
-			state[bot].append(val)
-		elif line.startswith('bot'):
-			bot, low, high = int(x[1]), int(x[6]), int(x[-1])
-			lowhigh[bot] = (x[5], low), (x[-2], high)
+		if x[0] == 'value':
+			state[int(x[-1])].append(int(x[1]))
+		elif x[0] == 'bot':
+			lowhigh[int(x[1])] = (x[5], int(x[6])), (x[-2], int(x[-1]))
 		else:
 			raise ValueError
-	while True:
-		for bot, chips in list(state.items()):
-			if len(chips) == 2:
-				if 61 in chips and 17 in chips:
-					result1 = bot
-				if bot in lowhigh:
-					low, high = lowhigh[bot]
-					if low[0] == 'output':
-						outputs[low[1]] = min(chips)
-					else:
-						state[low[1]].append(min(chips))
-					if high[0] == 'output':
-						outputs[high[1]] = max(chips)
-					else:
-						state[high[1]].append(max(chips))
-					state[bot] = []
+	while state:
+		for bot, chips in [(a, b) for a, b in state.items() if len(b) == 2]:
+			if 61 in chips and 17 in chips:
+				result1 = bot
+			if bot in lowhigh:
+				low, high = lowhigh[bot]
+				if low[0] == 'output':
+					outputs[low[1]] = min(chips)
 				else:
-					raise ValueError
-				break
-		else:
-			break
+					state[low[1]].append(min(chips))
+				if high[0] == 'output':
+					outputs[high[1]] = max(chips)
+				else:
+					state[high[1]].append(max(chips))
+				state.pop(bot)
+			else:
+				raise ValueError
 	return result1, outputs[0] * outputs[1] * outputs[2]
 
+
+def day11a(s):
+	def srepr(elevator, state):
+		return hash((elevator, )
+				+ tuple(sorted(zip(state, state[1:]))))
+
+	def estimate(state):
+		return sum([5, 3, 1, 0][b] for b in state)
+
+	def legal(state):
+		return not any(
+				(a & 1)  # is a microchip
+				and b != state[a - 1]  # not on same floor as its generator
+				and any((c & 1) == 0 and b == d  # microchip exposed to diff generator
+						for c, d in enumerate(state))
+				for a, b in enumerate(state))
+
+	state = {a: n for n, line in enumerate(s.splitlines())
+			for a in re.findall(
+				r'(\w+(?: generator|-compatible microchip))', line)}
+	state = tuple(b for a, b in sorted(state.items()))
+	agenda = [[(0, 0, state)]] + [[] for _ in range(100)]
+	seen = {srepr(0, state)}
+	curmin = 0
+	while True:
+		while not agenda[curmin]:
+			curmin += 1
+		steps, elevator, state = agenda[curmin].pop()
+		if all(b == 3 for b in state):
+			return steps
+		onfloor = [a for a, b in enumerate(state) if b == elevator]
+		for comb in itertools.chain(
+				((a, ) for a in onfloor),
+				itertools.combinations(onfloor, 2)):
+			if elevator < 3:
+				newstate = tuple(b + (a in comb) for a, b in enumerate(state))
+				if legal(newstate) and srepr(
+						elevator + 1, newstate) not in seen:
+					seen.add(srepr(elevator + 1, newstate))
+					est = estimate(newstate) + steps + 1
+					agenda[est].append((steps + 1, elevator + 1, newstate))
+					if curmin > est:
+						curmin = est
+			if elevator > 0:
+				newstate = tuple(b - (a in comb) for a, b in enumerate(state))
+				if legal(newstate) and srepr(
+						elevator - 1, newstate) not in seen:
+					seen.add(srepr(elevator - 1, newstate))
+					est = estimate(newstate) + steps + 1
+					agenda[est].append((steps + 1, elevator - 1, newstate))
+					if curmin > est:
+						curmin = est
+
+
+def day11b(s):
+	lines = s.splitlines()
+	lines[0] += ' elerium generator elerium-compatible microchip'
+	lines[0] += ' dilithium generator dilithium-compatible microchip'
+	return day11a('\n'.join(lines))
 
 
 if __name__ == '__main__':
