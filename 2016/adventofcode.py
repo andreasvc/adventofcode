@@ -309,24 +309,23 @@ def day10(s):
 
 def day11a(s):
 	def srepr(elevator, state):
-		return hash((elevator, )
-				+ tuple(sorted(zip(state, state[1:]))))
+		return hash(tuple([elevator] + sorted(zip(state, state[1:]))))
 
-	def estimate(state):
-		return sum([5, 3, 1, 0][b] for b in state)
+	def estimate(elevator, state):
+		return sum([5, 3, 1, 0][b] for b in state) + (3 - elevator)
 
 	def legal(state):
 		return not any(
 				(a & 1)  # is a microchip
 				and b != state[a - 1]  # not on same floor as its generator
-				and any((c & 1) == 0 and b == d  # microchip exposed to diff generator
+				and any((c & 1) == 0 and b == d  # microchip with diff gen.
 						for c, d in enumerate(state))
 				for a, b in enumerate(state))
 
 	state = {a: n for n, line in enumerate(s.splitlines())
 			for a in re.findall(
 				r'(\w+(?: generator|-compatible microchip))', line)}
-	state = tuple(b for a, b in sorted(state.items()))
+	state = [b for _, b in sorted(state.items())]
 	agenda = [[(0, 0, state)]] + [[] for _ in range(100)]
 	seen = {srepr(0, state)}
 	curmin = 0
@@ -340,24 +339,18 @@ def day11a(s):
 		for comb in itertools.chain(
 				((a, ) for a in onfloor),
 				itertools.combinations(onfloor, 2)):
-			if elevator < 3:
-				newstate = tuple(b + (a in comb) for a, b in enumerate(state))
-				if legal(newstate) and srepr(
-						elevator + 1, newstate) not in seen:
-					seen.add(srepr(elevator + 1, newstate))
-					est = estimate(newstate) + steps + 1
-					agenda[est].append((steps + 1, elevator + 1, newstate))
-					if curmin > est:
-						curmin = est
-			if elevator > 0:
-				newstate = tuple(b - (a in comb) for a, b in enumerate(state))
-				if legal(newstate) and srepr(
-						elevator - 1, newstate) not in seen:
-					seen.add(srepr(elevator - 1, newstate))
-					est = estimate(newstate) + steps + 1
-					agenda[est].append((steps + 1, elevator - 1, newstate))
-					if curmin > est:
-						curmin = est
+			for dir in (1, -1):
+				if 0 <= elevator + dir <= 3:
+					newstate = [b + dir * (a in comb)
+							for a, b in enumerate(state)]
+					if legal(newstate) and srepr(
+							elevator + dir, newstate) not in seen:
+						seen.add(srepr(elevator + dir, newstate))
+						est = estimate(elevator, newstate) + steps + 1
+						agenda[est].append((
+								steps + 1, elevator + dir, newstate))
+						if curmin > est:
+							curmin = est
 
 
 def day11b(s):
