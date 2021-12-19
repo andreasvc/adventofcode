@@ -768,5 +768,59 @@ def day18b(s):
 			for a, b in itertools.permutations(s.splitlines(), 2))
 
 
+def _day19(s):
+	from scipy.spatial import distance
+	scanners = [np.array([[int(a) for a in line.split(',')]
+				for line in block.splitlines()[1:]], dtype=int)
+			for block in s.split('\n\n')]
+	rotations = list(itertools.permutations(range(3), 3))
+	inversions = [np.array(inv, dtype=int)
+			for inv in itertools.product(*[(1, -1)] * 3)]
+	aligned = scanners[0]
+	done = {0: (0, aligned.shape[0])}
+	loc = {0: np.array([0, 0, 0], dtype=int)}
+	while len(done) < len(scanners):
+		for n, scanner in enumerate(scanners):
+			if n in done:
+				continue
+			# import scipy.spatial
+			# import scipy.linalg
+			# ap = np.pad(scanners[0], ((0, 27 - scanners[0].shape[0]), (0, 0)))
+			# bp = np.pad(scanner, ((0, 27 - scanner.shape[0]), (0, 0)))
+			# m1, m2, disp = scipy.spatial.procrustes(ap, bp)
+			# R, disp = scipy.linalg.orthogonal_procrustes(ap, bp)
+			# m2 = scanner @ R
+			# res = distance.cdist(scanners[0], m2)
+			# print('%2d  %g' % (n, disp))
+			for rot, inv in itertools.product(rotations, inversions):
+				x = scanner[:, rot] * np.array(inv, dtype=int)
+				for m, mm in done.values():
+					res = distance.cdist(aligned[m:mm, :], x, 'euclidean')
+					val, cnt = Counter(res.ravel()).most_common(1)[0]
+					if cnt >= 12:
+						x = scanner[:, rot] * np.array(inv, dtype=int)
+						done[n] = (aligned.shape[0],
+								aligned.shape[0] + x.shape[0])
+						ac, bc = (res == val).nonzero()
+						diff = aligned[m + ac[0], :] - x[bc[0], :]
+						loc[n] = diff
+						aligned = np.vstack([aligned, x + diff])
+						break
+	unique = np.unique(aligned, axis=0)
+	numbeacons = unique.shape[0]
+	maxscannerdist = max(np.abs(a - b).sum()
+			for a in loc.values()
+			for b in loc.values())
+	return numbeacons, maxscannerdist
+
+
+def day19a(s):
+	return _day19(s)[0]
+
+
+def day19b(s):
+	return _day19(s)[1]
+
+
 if __name__ == '__main__':
 	main(globals())
