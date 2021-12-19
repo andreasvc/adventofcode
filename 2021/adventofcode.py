@@ -3,6 +3,7 @@ import re
 import sys
 import json
 from operator import lt, gt, eq
+from functools import reduce
 import itertools
 from collections import Counter, defaultdict
 import numpy as np
@@ -614,42 +615,60 @@ def add(a, b):
 	[[[[7, 7], [7, 8]], [[9, 5], [8, 7]]], [[[6, 8], [0, 8]], [[9, 9], [9, 0]]]]
 	"""
 	result = [a, b]
-	while True:
-		didexplode = doexplode(result, result, 0, 4)
-		if didexplode:
-			result = didexplode
-			continue
-		didsplit = dosplit(result, 10)
-		if didsplit:
-			continue
-		return result
+	while doexplode(result, 0, 4)[0] or dosplit(result, 10):
+		pass
+	return result
 
 
-def doexplode(tree, node, cur, maxdepth, digits=re.compile(r'\d+')):
-	"""Find leftmost node nested at maxdepth and explode it."""
-	if isinstance(node, list):
-		if cur >= maxdepth and all(isinstance(child, int) for child in node):
-			a, b = node
-			node[:] = [-1]  # create a unique value ...
-			resstr = str(tree)
-			i = resstr.index('[-1]')
-			resstr = resstr[:i] + '0' + resstr[i + 4:]
-			r = digits.search(resstr, pos=i + 1)
-			if r:
-				ii, jj = r.span()
-				x = int(resstr[ii:jj])
-				resstr = resstr[:ii] + str(x + b) +  resstr[jj:]
-			l = list(digits.finditer(resstr, 0, i))
-			if l:
-				ii, jj = l[-1].span()
-				x = int(resstr[ii:jj])
-				resstr = resstr[:ii] + str(x + a) +  resstr[jj:]
-			return json.loads(resstr)
-		for child in node:
-			res = doexplode(tree, child, cur + 1, maxdepth)
-			if res:
-				return res
-	return None
+def doexplode(node, cur, maxdepth, digits=re.compile(r'\d+')):
+	"""Find leftmost node nested at maxdepth and explode it.
+
+	>>> tree = [[[[[9, 8], 1], 2], 3], 4]
+	>>> _ = doexplode(tree,  0,  4)
+	>>> tree
+	[[[[0, 9], 2], 3], 4]
+	>>> tree = [7, [6, [5, [4, [3, 2]]]]]
+	>>> _ = doexplode(tree,  0,  4)
+	>>> tree
+	[7, [6, [5, [7, 0]]]]
+	>>> tree = [[6, [5, [4, [3, 2]]]], 1]
+	>>> _ = doexplode(tree,  0,  4)
+	>>> tree
+	[[6, [5, [7, 0]]], 3]
+	>>> tree = [[3, [2, [1, [7, 3]]]], [6, [5, [4, [3, 2]]]]]
+	>>> _ = doexplode(tree,  0,  4)
+	>>> tree
+	[[3, [2, [8, 0]]], [9, [5, [4, [3, 2]]]]]
+	>>> tree = [[3, [2, [8, 0]]], [9, [5, [4, [3, 2]]]]]
+	>>> _ = doexplode(tree,  0,  4)
+	>>> tree
+	[[3, [2, [8, 0]]], [9, [5, [7, 0]]]]"""
+	def findsibling(node, x, right):
+		if isinstance(node, int):
+			return node + x
+		return [node[0], findsibling(node[1], x, right)
+				] if right else [findsibling(node[0], x, right), node[1]]
+
+	l = r = None
+	exploded = False
+	for i, child in enumerate(node):
+		if isinstance(child, int):
+			continue
+		elif cur + 1 >= maxdepth and all(isinstance(gc, int) for gc in child):
+			l, r = child
+			node[i] = 0
+			exploded = True
+		else:
+			exploded, l, r = doexplode(child, cur + 1, maxdepth)
+		if l is not None and i == 1:
+			node[0] = findsibling(node[0], l, i)
+			l = None
+		if r is not None and i == 0:
+			node[1] = findsibling(node[1], r, i)
+			r = None
+		if exploded:
+			break
+	return exploded, l, r
 
 
 def dosplit(node, maxval):
@@ -670,34 +689,6 @@ def dosplit(node, maxval):
 		elif dosplit(child, maxval):
 			return True
 	return False
-
-
-def addlist(data):
-	"""
-	>>> addlist([[1, 1], [2, 2], [3, 3], [4, 4]])
-	[[[[1, 1], [2, 2]], [3, 3]], [4, 4]]
-	>>> addlist([[1, 1], [2, 2], [3, 3], [4, 4], [5, 5]])
-	[[[[3, 0], [5, 3]], [4, 4]], [5, 5]]
-	>>> addlist([[1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 6]])
-	[[[[5, 0], [7, 4]], [5, 5]], [6, 6]]
-	>>> data = [
-	...		[[[0,[4,5]],[0,0]],[[[4,5],[2,6]],[9,5]]],
-	...		[7,[[[3,7],[4,3]],[[6,3],[8,8]]]],
-	...		[[2,[[0,8],[3,4]]],[[[6,7],1],[7,[1,6]]]],
-	...		[[[[2,4],7],[6,[0,5]]],[[[6,8],[2,8]],[[2,1],[4,5]]]],
-	...		[7,[5,[[3,8],[1,4]]]],
-	...		[[2,[2,2]],[8,[8,1]]],
-	...		[2,9],
-	...		[1,[[[9,3],9],[[9,0],[0,7]]]],
-	...		[[[5,[7,4]],7],1],
-	...		[[[[4,2],2],6],[8,7]]]
-	>>> addlist(data)
-	[[[[8, 7], [7, 7]], [[8, 6], [7, 7]]], [[[0, 7], [6, 6]], [8, 7]]]
-	"""
-	result = data[0]
-	for a in data[1:]:
-		result = add(result, a)
-	return result
 
 
 def magnitude(node):
@@ -734,9 +725,28 @@ def day18a(s):
 	...			'[[[[5,2],5],[8,[3,7]]],[[5,[7,5]],[4,4]]]\\n')
 	>>> day18a(s)
 	4140
+	>>> reduce(add, [[1, 1], [2, 2], [3, 3], [4, 4]])
+	[[[[1, 1], [2, 2]], [3, 3]], [4, 4]]
+	>>> reduce(add, [[1, 1], [2, 2], [3, 3], [4, 4], [5, 5]])
+	[[[[3, 0], [5, 3]], [4, 4]], [5, 5]]
+	>>> reduce(add, [[1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 6]])
+	[[[[5, 0], [7, 4]], [5, 5]], [6, 6]]
+	>>> data = [
+	...		[[[0,[4,5]],[0,0]],[[[4,5],[2,6]],[9,5]]],
+	...		[7,[[[3,7],[4,3]],[[6,3],[8,8]]]],
+	...		[[2,[[0,8],[3,4]]],[[[6,7],1],[7,[1,6]]]],
+	...		[[[[2,4],7],[6,[0,5]]],[[[6,8],[2,8]],[[2,1],[4,5]]]],
+	...		[7,[5,[[3,8],[1,4]]]],
+	...		[[2,[2,2]],[8,[8,1]]],
+	...		[2,9],
+	...		[1,[[[9,3],9],[[9,0],[0,7]]]],
+	...		[[[5,[7,4]],7],1],
+	...		[[[[4,2],2],6],[8,7]]]
+	>>> reduce(add, data)
+	[[[[8, 7], [7, 7]], [[8, 6], [7, 7]]], [[[0, 7], [6, 6]], [8, 7]]]
 	"""
 	data = [json.loads(line) for line in s.splitlines()]
-	return magnitude(addlist(data))
+	return magnitude(reduce(add, data))
 
 
 def day18b(s):
