@@ -773,53 +773,49 @@ def _day19(s):
 	scanners = [np.array([[int(a) for a in line.split(',')]
 				for line in block.splitlines()[1:]], dtype=int)
 			for block in s.split('\n\n')]
-	rotations = list(itertools.permutations(range(3), 3))
-	inversions = [np.array(inv, dtype=int)
-			for inv in itertools.product(*[(1, -1)] * 3)]
-	aligned = scanners[0]
-	done = {0: (0, aligned.shape[0])}
+	# all possible rotations without mirroring
+	# https://github.com/xdavidliu/advent-code-2021/blob/main/day19.py
+	rot = []
+	for x, y, z in itertools.product(*[(1, -1)] * 3):
+		for q in itertools.permutations([[x, 0, 0], [0, y, 0], [0, 0, z]]):
+			m = np.array(q)
+			if np.linalg.det(m) == 1:
+				rot.append(m)
+	aligned = {0: scanners[0]}
 	loc = {0: np.array([0, 0, 0], dtype=int)}
-	while len(done) < len(scanners):
+	while len(aligned) < len(scanners):
 		for n, scanner in enumerate(scanners):
-			if n in done:
+			if n in aligned:
 				continue
-			# import scipy.spatial
-			# import scipy.linalg
-			# ap = np.pad(scanners[0], ((0, 27 - scanners[0].shape[0]), (0, 0)))
-			# bp = np.pad(scanner, ((0, 27 - scanner.shape[0]), (0, 0)))
-			# m1, m2, disp = scipy.spatial.procrustes(ap, bp)
-			# R, disp = scipy.linalg.orthogonal_procrustes(ap, bp)
-			# m2 = scanner @ R
-			# res = distance.cdist(scanners[0], m2)
-			# print('%2d  %g' % (n, disp))
-			for rot, inv in itertools.product(rotations, inversions):
-				x = scanner[:, rot] * np.array(inv, dtype=int)
-				for m, mm in done.values():
-					res = distance.cdist(aligned[m:mm, :], x, 'euclidean')
-					val, cnt = Counter(res.ravel()).most_common(1)[0]
+			for r in rot:
+				x = scanner @ r
+				for other in aligned.values():
+					res = distance.cdist(other, x, 'euclidean')
+					vals, counts = np.unique(res.ravel(), return_counts=True)
+					index = np.argmax(counts)
+					val, cnt = vals[index], counts[index]
 					if cnt >= 12:
-						x = scanner[:, rot] * np.array(inv, dtype=int)
-						done[n] = (aligned.shape[0],
-								aligned.shape[0] + x.shape[0])
 						ac, bc = (res == val).nonzero()
-						diff = aligned[m + ac[0], :] - x[bc[0], :]
+						diff = other[ac[0], :] - x[bc[0], :]
 						loc[n] = diff
-						aligned = np.vstack([aligned, x + diff])
+						aligned[n] = x + diff
 						break
-	unique = np.unique(aligned, axis=0)
-	numbeacons = unique.shape[0]
-	maxscannerdist = max(np.abs(a - b).sum()
-			for a in loc.values()
-			for b in loc.values())
-	return numbeacons, maxscannerdist
+				if n in aligned:
+					break
+	return np.vstack(list(aligned.values())), loc
 
 
 def day19a(s):
-	return _day19(s)[0]
+	aligned, _loc = _day19(s)
+	unique = np.unique(aligned, axis=0)
+	return unique.shape[0]
 
 
 def day19b(s):
-	return _day19(s)[1]
+	_aligned, loc = _day19(s)
+	return max(np.abs(a - b).sum()
+			for a in loc.values()
+			for b in loc.values())
 
 
 if __name__ == '__main__':
