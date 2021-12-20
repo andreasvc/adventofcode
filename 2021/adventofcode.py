@@ -818,7 +818,7 @@ def day19b(s):
 			for b in loc.values())
 
 
-def day20a(s, padding=5, steps=2):
+def day20a(s, steps=2):
 	def show(im):
 		print('\n'.join(
 				''.join('#' if im[n, m] else '.' for m in range(im.shape[1]))
@@ -826,18 +826,18 @@ def day20a(s, padding=5, steps=2):
 
 	from scipy.ndimage import convolve
 	alg, im = s.split('\n\n')
-	alg = np.array([a == '#' for a in alg], dtype=float)
+	alg = np.array([a == '#' for a in alg], dtype=int)
 	im = np.array([[a == '#' for a in line]
-			for line in im.splitlines()], dtype=float)
-	im = np.pad(im, (padding, padding))
-	conv = (2 ** np.arange(9)).reshape((3, 3))
+			for line in im.splitlines()], dtype=int)
+	im = np.pad(im, steps + 1)
+	conv = (2 ** np.arange(9, dtype=int)).reshape((3, 3))
 	for _ in range(steps):
-		im = alg[convolve(im, conv).astype(int)]
+		im = alg[convolve(im, conv)]
 	return int(im.sum())
 
 
 def day20b(s):
-	return day20a(s, padding=60, steps=50)
+	return day20a(s, steps=50)
 
 
 if __name__ == '__main__':
