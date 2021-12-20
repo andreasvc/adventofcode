@@ -819,25 +819,20 @@ def day19b(s):
 
 
 def day20a(s, padding=5, steps=2):
-	def applyalg(nb):
-		idx = sum(1 << (8 - n) for n in nb.nonzero()[0])
-		return alg[idx]
-
 	def show(im):
 		print('\n'.join(
 				''.join('#' if im[n, m] else '.' for m in range(im.shape[1]))
 				for n in range(im.shape[0])) + '\n')
 
-	from scipy.ndimage import generic_filter
+	from scipy.ndimage import convolve
 	alg, im = s.split('\n\n')
 	alg = np.array([a == '#' for a in alg], dtype=float)
 	im = np.array([[a == '#' for a in line]
 			for line in im.splitlines()], dtype=float)
 	im = np.pad(im, (padding, padding))
-	tmp = np.empty_like(im)
+	conv = (2 ** np.arange(9)).reshape((3, 3))
 	for _ in range(steps):
-		generic_filter(im, applyalg, size=3, mode='nearest', output=tmp)
-		im, tmp = tmp, im
+		im = alg[convolve(im, conv).astype(int)]
 	return int(im.sum())
 
 
