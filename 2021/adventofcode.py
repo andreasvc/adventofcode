@@ -840,5 +840,54 @@ def day20b(s):
 	return day20a(s, steps=50)
 
 
+def day21a(s):
+	_, a, _, b = re.findall(r'\d+', s)
+	a, b = int(a), int(b)
+	ascore = bscore = cnt = 0
+	die = itertools.cycle(range(1, 101))
+	while True:
+		a = (a - 1 + next(die) + next(die) + next(die)) % 10 + 1
+		ascore += a
+		cnt += 3
+		if ascore >= 1000:
+			return cnt, ascore, bscore, cnt * bscore
+		b = (b - 1 + next(die) + next(die) + next(die)) % 10 + 1
+		bscore += b
+		cnt += 3
+		if bscore >= 1000:
+			return cnt, ascore, bscore, cnt * ascore
+
+
+def simulate(init, moves, possibleturns):
+	agenda = [(init, 0, 1)]
+	winsat = [0] * 20
+	nowinsat = [0] * 20
+	while agenda:
+		pos, score, nummoves = agenda.pop()
+		for turn in possibleturns:
+			steps = moves[pos, turn]
+			newscore = score + steps
+			if newscore >= 21:
+				winsat[nummoves] += 1
+			else:
+				nowinsat[nummoves] += 1
+				agenda.append((steps, newscore, nummoves + 1))
+	return winsat, nowinsat
+
+
+def day21b(s):
+	_, a, _, b = map(int, re.findall(r'\d+', s))
+	possibleturns = [sum(a) for a in itertools.product([1, 2, 3], repeat=3)]
+	moves = {}  # (startpos, steps) -> score increase
+	for init in range(1, 11):
+		for turn in possibleturns:
+			moves[init, turn] = (init - 1 + turn) % 10 + 1
+	awinsat, anowinsat = simulate(a, moves, possibleturns)
+	bwinsat, bnowinsat = simulate(b, moves, possibleturns)
+	awins = sum(awinsat[n] * bnowinsat[n - 1] for n in range(1, 20))
+	bwins = sum(bwinsat[n] * anowinsat[n] for n in range(1, 20))
+	return max(awins, bwins)
+
+
 if __name__ == '__main__':
 	main(globals())
