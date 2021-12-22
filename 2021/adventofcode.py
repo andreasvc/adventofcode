@@ -3,7 +3,7 @@ import re
 import sys
 import json
 from operator import lt, gt, eq
-from functools import reduce, lru_cache
+from functools import reduce
 import itertools
 from collections import Counter, defaultdict
 import numpy as np
@@ -906,25 +906,19 @@ def day22a(s):
 	return grid.sum()
 
 
-@lru_cache(None)
-def numcubes(step):
-	cubes = 1
-	for n in range(1, 7, 2):
-		a, b = step[n:n + 2]
-		cubes *= (b - a) if a < b else 0
-	return cubes * (1 if step[0] else -1)
+def volume(x1, x2, y1, y2, z1, z2):
+	return (x2 - x1) * (y2 - y1) * (z2 - z1)
 
 
-@lru_cache(None)
-def overlap(step1, step2):
-	coords = [0 if step1[0] else 1]
-	for n in range(1, 7, 2):
-		a = max(step1[n], step2[n])
-		b = min(step1[n + 1], step2[n + 1])
-		if a >= b:
-			return None
-		coords.extend([a, b])
-	return tuple(coords)
+def overlap(x1, x2, y1, y2, z1, z2, _, u1, u2, v1, v2, w1, w2):
+	x1 = x1 if x1 > u1 else u1
+	x2 = x2 if x2 < u2 else u2
+	y1 = y1 if y1 > v1 else v1
+	y2 = y2 if y2 < v2 else v2
+	z1 = z1 if z1 > w1 else w1
+	z2 = z2 if z2 < w2 else w2
+	if x1 < x2 and y1 < y2 and z1 < z2:
+		return x1, x2, y1, y2, z1, z2
 
 
 def day22b(s):
@@ -937,18 +931,17 @@ def day22b(s):
 		z1, z2 = sorted(map(int, zz.split('=')[1].split('..')))
 		step = bit, x1, x2 + 1, y1, y2 + 1, z1, z2 + 1
 		steps.append(step)
-	on = 0
-	deltas = []
+	deltas = Counter()
 	for step in steps:
-		for prev in deltas[:]:
-			coords = overlap(prev, step)
-			if coords:
-				deltas.append(coords)
-				on += numcubes(coords)
-		if step[0]:
-			deltas.append(step)
-			on += numcubes(step)
-	return on
+		update = Counter()
+		for prev, cnt in deltas.items():
+			if cnt:
+				coords = overlap(*prev, *step)
+				if coords:
+					update[coords] -= cnt
+		update[step[1:]] += step[0]
+		deltas.update(update)
+	return sum(volume(*step) * cnt for step, cnt in deltas.items())
 
 
 if __name__ == '__main__':
