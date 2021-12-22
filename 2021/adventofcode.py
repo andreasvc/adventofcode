@@ -891,7 +891,6 @@ def day21b(s):
 
 def day22a(s):
 	grid = np.zeros((101, 101, 101), dtype=bool)
-	prev = 0
 	for l in s.splitlines():
 		bit = l.startswith('on')
 		xx, yy, zz = l.split()[1].split(',')
@@ -901,8 +900,6 @@ def day22a(s):
 		if any(c < -50 or c > 50 for c in (x1, x2, y1, y2, z1, z2)):
 			continue
 		grid[x1 + 50:x2 + 51, y1 + 50:y2 + 51, z1 + 50:z2 + 51] = bit
-		print(grid.sum() - prev, grid.sum(), l)
-		prev = grid.sum()
 	return grid.sum()
 
 
@@ -910,7 +907,7 @@ def volume(x1, x2, y1, y2, z1, z2):
 	return (x2 - x1) * (y2 - y1) * (z2 - z1)
 
 
-def overlap(x1, x2, y1, y2, z1, z2, _, u1, u2, v1, v2, w1, w2):
+def overlap(x1, x2, y1, y2, z1, z2, u1, u2, v1, v2, w1, w2):
 	x1 = x1 if x1 > u1 else u1
 	x2 = x2 if x2 < u2 else u2
 	y1 = y1 if y1 > v1 else v1
@@ -929,17 +926,17 @@ def day22b(s):
 		x1, x2 = sorted(map(int, xx.split('=')[1].split('..')))
 		y1, y2 = sorted(map(int, yy.split('=')[1].split('..')))
 		z1, z2 = sorted(map(int, zz.split('=')[1].split('..')))
-		step = bit, x1, x2 + 1, y1, y2 + 1, z1, z2 + 1
+		step = bit, (x1, x2 + 1, y1, y2 + 1, z1, z2 + 1)
 		steps.append(step)
 	deltas = Counter()
-	for step in steps:
+	for bit, step in steps:
 		update = Counter()
 		for prev, cnt in deltas.items():
 			if cnt:
 				coords = overlap(*prev, *step)
 				if coords:
 					update[coords] -= cnt
-		update[step[1:]] += step[0]
+		update[step] += bit
 		deltas.update(update)
 	return sum(volume(*step) * cnt for step, cnt in deltas.items())
 
