@@ -934,20 +934,16 @@ def day22b(s):
 		step = bit, x1, x2 + 1, y1, y2 + 1, z1, z2 + 1
 		steps.append(step)
 	on = 0
-	d = []
-	for n, step in enumerate(steps):
-		if step[0]:
-			d.append(step)
-			on += numcubes(step)
-			print(numcubes(step), on, step)
-		for prev in d[:-1]:
+	deltas = []
+	for step in steps:
+		for prev in deltas[:]:
 			cubes, coords = overlap(prev, step)
 			if cubes:
-				d.append(coords)
+				deltas.append(coords)
 				on += numcubes(coords)
-				print(' ', numcubes(coords), on, coords)
-	print(on)
-	print(2758514936282235, 474140, 'expected')
+		if step[0]:
+			deltas.append(step)
+			on += numcubes(step)
 	return on
 
 
