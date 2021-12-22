@@ -3,7 +3,7 @@ import re
 import sys
 import json
 from operator import lt, gt, eq
-from functools import reduce
+from functools import reduce, lru_cache
 import itertools
 from collections import Counter, defaultdict
 import numpy as np
@@ -906,24 +906,28 @@ def day22a(s):
 	return grid.sum()
 
 
+@lru_cache(None)
+def numcubes(step):
+	cubes = 1
+	for n in range(1, 7, 2):
+		a, b = step[n:n + 2]
+		cubes *= (b - a) if a < b else 0
+	return cubes * (1 if step[0] else -1)
+
+
+@lru_cache(None)
+def overlap(step1, step2):
+	coords = [0 if step1[0] else 1]
+	for n in range(1, 7, 2):
+		a = max(step1[n], step2[n])
+		b = min(step1[n + 1], step2[n + 1])
+		if a >= b:
+			return None
+		coords.extend([a, b])
+	return tuple(coords)
+
+
 def day22b(s):
-	def numcubes(step):
-		cubes = 1
-		for n in range(1, 7, 2):
-			a, b = step[n:n + 2]
-			cubes *= (b - a) if a < b else 0
-		return cubes * (1 if step[0] else -1)
-
-	def overlap(step1, step2):
-		coords = [0 if step1[0] else 1]
-		for n in range(1, 7, 2):
-			a = max(step1[n], step2[n])
-			b = min(step1[n + 1], step2[n + 1])
-			if a >= b:
-				return 0, None
-			coords.extend([a, b])
-		return numcubes(coords), coords
-
 	steps = []
 	for l in s.splitlines():
 		bit = l.startswith('on')
@@ -937,8 +941,8 @@ def day22b(s):
 	deltas = []
 	for step in steps:
 		for prev in deltas[:]:
-			cubes, coords = overlap(prev, step)
-			if cubes:
+			coords = overlap(prev, step)
+			if coords:
 				deltas.append(coords)
 				on += numcubes(coords)
 		if step[0]:
