@@ -889,5 +889,67 @@ def day21b(s):
 	return max(awins, bwins)
 
 
+def day22a(s):
+	grid = np.zeros((101, 101, 101), dtype=bool)
+	prev = 0
+	for l in s.splitlines():
+		bit = l.startswith('on')
+		xx, yy, zz = l.split()[1].split(',')
+		x1, x2 = map(int, xx.split('=')[1].split('..'))
+		y1, y2 = map(int, yy.split('=')[1].split('..'))
+		z1, z2 = map(int, zz.split('=')[1].split('..'))
+		if any(c < -50 or c > 50 for c in (x1, x2, y1, y2, z1, z2)):
+			continue
+		grid[x1 + 50:x2 + 51, y1 + 50:y2 + 51, z1 + 50:z2 + 51] = bit
+		print(grid.sum() - prev, grid.sum(), l)
+		prev = grid.sum()
+	return grid.sum()
+
+
+def day22b(s):
+	def numcubes(step):
+		cubes = 1
+		for n in range(1, 7, 2):
+			a, b = step[n:n + 2]
+			cubes *= (b - a) if a < b else 0
+		return cubes * (1 if step[0] else -1)
+
+	def overlap(step1, step2):
+		coords = [0 if step1[0] else 1]
+		for n in range(1, 7, 2):
+			a = max(step1[n], step2[n])
+			b = min(step1[n + 1], step2[n + 1])
+			if a >= b:
+				return 0, None
+			coords.extend([a, b])
+		return numcubes(coords), coords
+
+	steps = []
+	for l in s.splitlines():
+		bit = l.startswith('on')
+		xx, yy, zz = l.split()[1].split(',')
+		x1, x2 = sorted(map(int, xx.split('=')[1].split('..')))
+		y1, y2 = sorted(map(int, yy.split('=')[1].split('..')))
+		z1, z2 = sorted(map(int, zz.split('=')[1].split('..')))
+		step = bit, x1, x2 + 1, y1, y2 + 1, z1, z2 + 1
+		steps.append(step)
+	on = 0
+	d = []
+	for n, step in enumerate(steps):
+		if step[0]:
+			d.append(step)
+			on += numcubes(step)
+			print(numcubes(step), on, step)
+		for prev in d[:-1]:
+			cubes, coords = overlap(prev, step)
+			if cubes:
+				d.append(coords)
+				on += numcubes(coords)
+				print(' ', numcubes(coords), on, coords)
+	print(on)
+	print(2758514936282235, 474140, 'expected')
+	return on
+
+
 if __name__ == '__main__':
 	main(globals())
