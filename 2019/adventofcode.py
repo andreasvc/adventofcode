@@ -396,15 +396,13 @@ def day12b(s):
 	pos = np.array(list(map(int, re.findall(r'-?\d+', s))),
 			dtype=int).reshape((-1, 3))
 	vel = np.zeros_like(pos)
-	initpos = pos.copy()
 	repeats = np.zeros(3, dtype=int)
 	step = 0
 	while (repeats == 0).any():
 		vel += np.sign(pos - pos[:, np.newaxis]).sum(axis=1)
 		pos += vel
 		step += 1
-		repeats[(repeats == 0) & (pos == initpos).all(axis=0)
-				& (vel == 0).all(axis=0)] = step
+		repeats[(repeats == 0) & (vel == 0).all(axis=0)] = 2 * step
 	return np.lcm.reduce(repeats)
 
 
