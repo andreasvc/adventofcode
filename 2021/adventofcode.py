@@ -1152,27 +1152,25 @@ def day24b(s):
 def day25a(s):
 	grid = np.array(
 			[[1 if a == '>' else (2 if a == 'v' else 0) for a in l]
-				for l in s.splitlines()],
-			dtype=int)
+				for l in s.splitlines()], dtype=int)
 	rowsmod1 = list(range(1, grid.shape[0])) + [0]
+	rowsmod1p = [grid.shape[0] - 1] + list(range(grid.shape[0] - 1))
 	colsmod1 = list(range(1, grid.shape[1])) + [0]
+	colsmod1p = [grid.shape[1] - 1] + list(range(grid.shape[1] - 1))
 	step = 0
 	moved = True
 	while moved:
-		moved = False
-		newgrid = grid.copy()
-		for n, m in zip(*(
-				(newgrid == 1) & (newgrid[:, colsmod1] == 0)).nonzero()):
-			newgrid[n, m] = 0
-			newgrid[n, colsmod1[m]] = 1
-			moved = True
-		for n, m in zip(*(
-				(newgrid == 2) & (newgrid[rowsmod1, :] == 0)).nonzero()):
-			newgrid[n, m] = 0
-			newgrid[rowsmod1[n], m] = 2
-			moved = True
+		moveright = (grid == 1) & (grid[:, colsmod1] == 0)
+		grid[moveright] = 0
+		grid[moveright[:, colsmod1p]] = 1
+		movedown = (grid == 2) & (grid[rowsmod1, :] == 0)
+		grid[movedown] = 0
+		grid[movedown[rowsmod1p, :]] = 2
+		moved = moveright.any() or movedown.any()
 		step += 1
-		grid = newgrid
+		# print('\n'.join(
+		# 	''.join('.>v'[grid[n, m]] for m in range(grid.shape[1]))
+		# 	for n in range(grid.shape[0])))
 	return step
 
 
