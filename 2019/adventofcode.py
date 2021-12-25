@@ -1,4 +1,5 @@
 """Advent of Code 2019. http://adventofcode.com/2019 """
+import re
 import sys
 import itertools
 import math
@@ -379,6 +380,32 @@ def day11b(s):
 				for x in range(max(xs), min(xs) - 1, -1))
 				# for x in range(min(xs), max(xs) + 1))
 				for y in range(min(ys), max(ys) + 1))
+
+
+def day12a(s, steps=1000):
+	pos = np.array(list(map(int, re.findall(r'-?\d+', s))),
+			dtype=int).reshape((-1, 3))
+	vel = np.zeros_like(pos)
+	for step in range(steps):
+		vel += np.sign(pos - pos[:, np.newaxis]).sum(axis=1)
+		pos += vel
+	return np.abs(pos).sum(axis=1) @ np.abs(vel).sum(axis=1)
+
+
+def day12b(s):
+	pos = np.array(list(map(int, re.findall(r'-?\d+', s))),
+			dtype=int).reshape((-1, 3))
+	vel = np.zeros_like(pos)
+	initpos = pos.copy()
+	repeats = np.zeros(3, dtype=int)
+	step = 0
+	while (repeats == 0).any():
+		vel += np.sign(pos - pos[:, np.newaxis]).sum(axis=1)
+		pos += vel
+		step += 1
+		repeats[(repeats == 0) & (pos == initpos).all(axis=0)
+				& (vel == 0).all(axis=0)] = step
+	return np.lcm.reduce(repeats)
 
 
 def day13a(s):
