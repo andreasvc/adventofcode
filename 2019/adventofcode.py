@@ -5,6 +5,7 @@ import itertools
 import math
 # import operator
 # from functools import reduce
+from heapq import heappop, heappush
 from collections import defaultdict  # Counter
 import numpy as np
 # from numba import njit
@@ -464,12 +465,215 @@ def day13b(s):
 	return score
 
 
+def day14a(s):
+	reactions = {}
+	for line in s.splitlines():
+		inp, out = line.split(' => ')
+		n, out = out.split()
+		inp = [(int(a.split()[0]), a.split()[1]) for a in inp.split(', ')]
+		assert out not in reactions
+		reactions[out] = (int(n), inp)
+	agenda = {'FUEL': 1}
+	rest = {}
+	ore = 0
+	while agenda:
+		chem = next(iter(agenda))
+		n = agenda.pop(chem)
+		if n == 0:
+			continue
+		m, inp = reactions[chem]
+		if m < n:
+			mult = n // m + ((n % m) != 0)
+		else:
+			mult = 1
+		rest.setdefault(chem, 0)
+		rest[chem] += mult * m - n
+		for x, ch1 in inp:
+			if ch1 == 'ORE':
+				ore += x * mult
+			else:
+				amount = max(0, x * mult - rest.get(ch1, 0))
+				agenda.setdefault(ch1, 0)
+				agenda[ch1] += amount
+				rest[ch1] = max(0, rest.get(ch1, 0) - (x * mult))
+	return ore
+
+
+def day14b(s):
+	def run(agenda, rest, ore):
+		while agenda:
+			chem = next(iter(agenda))
+			n = agenda.pop(chem)
+			if n == 0:
+				continue
+			m, inp = reactions[chem]
+			if m < n:
+				mult = n // m + ((n % m) != 0)
+			else:
+				mult = 1
+			rest.setdefault(chem, 0)
+			rest[chem] += mult * m - n
+			for x, ch1 in inp:
+				if ch1 == 'ORE':
+					ore += x * mult
+				else:
+					agenda.setdefault(ch1, 0)
+					amount = max(0, x * mult - rest.get(ch1, 0))
+					agenda[ch1] += amount
+					rest[ch1] = max(0, rest.get(ch1, 0) - (x * mult))
+		return ore
+
+	reactions = {}
+	for line in s.splitlines():
+		inp, out = line.split(' => ')
+		n, out = out.split()
+		inp = [(int(a.split()[0]), a.split()[1]) for a in inp.split(', ')]
+		assert out not in reactions
+		reactions[out] = (int(n), inp)
+	rest = {}
+	oreperfuel = day14a(s)
+	maxore = 1000000000000
+	fuel = maxore // oreperfuel
+	agenda = {'FUEL': fuel}
+	ore = run(agenda, rest, 0)
+	while ore < maxore:
+		inc = (maxore - ore) // oreperfuel
+		if inc == 0:
+			break
+		agenda = {'FUEL': inc}
+		ore = run(agenda, rest, ore)
+		fuel += inc
+	return fuel
+
+
+def _day15(s):
+	import random
+	random.seed(0)
+	program = parseprog(s)
+	walls = set()
+	nonwalls = set()
+	pc = rb = x = y = 0
+	n = 1
+	goalx = goaly = 0
+	for _ in range(500_000):
+		# if (y - 1, x) not in walls | nonwalls:
+		# 	n = 1
+		# elif (y, x + 1) not in walls | nonwalls:
+		# 	n = 3
+		# elif (y + 1, x) not in walls | nonwalls:
+		# 	n = 2
+		# elif (y, x - 1) not in walls | nonwalls:
+		# 	n = 4
+		# else:
+		# 	n = random.choice([1, 2, 3, 4])
+		n = random.choice([1, 2, 3, 4])
+		# n = n % 4 + 1
+		# print(n, len(walls), len(nonwalls))
+		out, pc, rb = interpreter(program, [n], True, pc, rb)
+		# change = False
+		if out[0] == 0:
+			xx, yy = x, y
+			if n == 1:
+				yy -= 1
+			elif n == 2:
+				yy += 1
+			elif n == 3:
+				xx += 1
+			elif n == 4:
+				xx -= 1
+			walls.add((xx, yy))
+		elif out[0] == 1:
+			if n == 1:
+				y -= 1
+			elif n == 2:
+				y += 1
+			elif n == 3:
+				x += 1
+			elif n == 4:
+				x -= 1
+			nonwalls.add((x, y))
+		elif out[0] == 2:
+			if n == 1:
+				y -= 1
+			elif n == 2:
+				y += 1
+			elif n == 3:
+				x += 1
+			elif n == 4:
+				x -= 1
+			nonwalls.add((x, y))
+			goalx, goaly = x, y
+		else:
+			raise ValueError
+		# if change:
+		# 	if n == 1:
+		# 		n = 4  # north -> east
+		# 	elif n == 2:
+		# 		n = 3  # south -> west
+		# 	elif n == 3:
+		# 		n = 1  # west -> north
+		# 	else:
+		# 		n = 2  # east -> south
+	# FIXME: need to explore ALL positions between (0, 0) and goal?
+	return goalx, goaly, walls, nonwalls
+
+
+def day15a(s):
+	x, y, walls, nonwalls = _day15(s)
+	agenda = [(abs(x) + abs(y), 0, x, y)]
+	explored = set()
+	while agenda:
+		_, steps, x, y = heappop(agenda)
+		if (x, y) in explored:
+			continue
+		explored.add((x, y))
+		if (x, y) == (0, 0):
+			return steps
+		if (x + 1, y) not in walls and (x + 1, y) in nonwalls:
+			heappush(agenda, (abs(x) + abs(y) + steps + 1, steps + 1, x + 1, y))
+		if (x - 1, y) not in walls and (x - 1, y) in nonwalls:
+			heappush(agenda, (abs(x) + abs(y) + steps + 1,steps + 1, x - 1, y))
+		if (x, y + 1) not in walls and (x, y + 1) in nonwalls:
+			heappush(agenda, (abs(x) + abs(y) + steps + 1,steps + 1, x, y + 1))
+		if (x, y - 1) not in walls and (x, y - 1) in nonwalls:
+			heappush(agenda, (abs(x) + abs(y) + steps + 1,steps + 1, x, y - 1))
+	return steps
+
+
+def day15b(s):
+	x, y, walls, nonwalls = _day15(s)
+	print(x, y)
+	hasoxy = {(x, y)}
+	new = [(x, y)]
+	mins = 0
+	# minx = min(x for x, y in walls | nonwalls)
+	# maxx = max(x for x, y in walls | nonwalls)
+	# miny = min(y for x, y in walls | nonwalls)
+	# maxy = max(y for x, y in walls | nonwalls)
+	# for y in range(miny, maxy + 1):
+	# 	print(''.join('#' if (x, y) in walls
+	# 			else '.' if (x, y) in nonwalls
+	# 			else ' '
+	# 			for x in range(minx, maxx + 1)))
+	#
+	while hasoxy != nonwalls:
+		newnew = set()
+		for x, y in new:
+			newnew.update({(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)})
+		newnew &= nonwalls
+		newnew -= hasoxy
+		hasoxy.update(newnew)
+		new = newnew
+		mins += 1
+	return mins
+
+
 def parseprog(s):
 	return defaultdict(int, enumerate(int(a) for a in s.split(',')))
 
 
 def interpreter(nums, inp, incremental=False, pc=0, rb=0):
-	"""day 9 version. returns for every output."""
+	"""day 9 version. returns for every output if incremental==True."""
 	def read(par):
 		if mode[-par] == '0':  # position
 			if nums[pc + par] < 0:
