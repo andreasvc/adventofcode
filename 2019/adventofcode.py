@@ -642,10 +642,10 @@ def day15a(s):
 
 def day15b(s):
 	x, y, walls, nonwalls = _day15(s)
-	print(x, y)
 	hasoxy = {(x, y)}
 	new = [(x, y)]
 	mins = 0
+	# print(x, y)
 	# minx = min(x for x, y in walls | nonwalls)
 	# maxx = max(x for x, y in walls | nonwalls)
 	# miny = min(y for x, y in walls | nonwalls)
@@ -691,6 +691,158 @@ def day16b(s, phases=100):
 			nums[m] += nums[m + 1]
 		nums %= 10
 	return ''.join(str(a) for a in nums[:8])
+
+
+def day17a(s):
+	program = parseprog(s)
+	out, pc, rb = interpreter(program, [])
+	out = ''.join(chr(a) for a in out).strip()
+	grid = np.array([list(a) for a in out.splitlines()])
+	result = 0
+	for y, x in zip(*((grid == '#')
+			& (np.roll(grid, (0, -1), axis=1) == '#')
+			& (np.roll(grid, (0, 1), axis=1) == '#')
+			& (np.roll(grid, (-1, 0), axis=0) == '#')
+			& (np.roll(grid, (1, 0), axis=0) == '#')).nonzero()):
+		grid[y, x] = 'O'
+		result += y * x
+	# print('\n'.join(
+	# 	''.join(grid[y, x] for x in range(grid.shape[1]))
+	# 	for y in range(grid.shape[0])))
+	return result
+
+
+def _day17b_path(s):
+	import tty
+	import sys
+	import termios
+	program = parseprog(s)
+	out, pc, rb = interpreter(program, [])
+	out = ''.join(chr(a) for a in out).strip()
+	grid = np.array([list(a) for a in out.splitlines()])
+	program[0] = 2
+	(y, ), (x, ) = (grid == '^').nonzero()
+	dir = 0
+	robot = '^>v<'
+	dirkeys = ',eoa'
+	steps = []
+	orig_settings = termios.tcgetattr(sys.stdin)
+	try:
+		tty.setcbreak(sys.stdin)  # https://stackoverflow.com/a/34497639
+		while True:
+			print('\n'.join(
+				''.join(grid[y, x] for x in range(grid.shape[1]))
+				for y in range(grid.shape[0])))
+			print('move (,=up o=down a=left e=right):')
+			key = sys.stdin.read(1)[0]
+			origx, origy, origdir = x, y, dir
+			if key in dirkeys:
+				dir = dirkeys.index(key)
+				if key == ',':  # up
+					y -= 1
+				elif key == 'e':  # right
+					x += 1
+				elif key == 'o':  # down
+					y += 1
+				elif key == 'a':  # left
+					x -= 1
+			elif key == '.' or key == chr(27):  # stop
+				print('stopping')
+				break
+			else:  # wrong key
+				print('unrecognized command:', repr(key))
+				continue
+			if grid[y, x] in '#%':
+				grid[origy, origx] = '%'
+				grid[y, x] = robot[dir]
+				# steps.append(robot[dir])
+				if dir == origdir:
+					steps[-1] += 1
+				else:
+					if dir - origdir > 0:
+						steps.append('R' * (dir - origdir))
+						if steps[-1] == 'RRR':
+							steps[-1] = 'L'
+					else:
+						steps.append('L' * (origdir - dir))
+						if steps[-1] == 'LLL':
+							steps[-1] = 'R'
+					steps.append(1)
+				print(','.join(str(a) for a in steps))
+			else:
+				print('no # at', y, x, grid[y, x], grid[origy, origx])
+				x, y, dir = origx, origy, origdir
+	finally:
+		termios.tcsetattr(sys.stdin, termios.TCSADRAIN, orig_settings)
+
+
+def day17b(s):
+	program = parseprog(s)
+	program[0] = 2
+	# full path, manually obtained with _day17b_path():
+	path = ('R,8,L,12,R,8,R,8,L,12,R,8,L,10,L,10,R,8,L,12,L,12,L,10,R,10,'
+			'L,10,L,10,R,8,L,12,L,12,L,10,R,10,L,10,L,10,R,8,R,8,L,12,R,8,'
+			'L,12,L,12,L,10,R,10,R,8,L,12,R,8')
+	# manually compressed:
+	funcs = {'A': 'R,8,L,12,R,8',
+			'B': 'L,10,L,10,R,8',
+			'C': 'L,12,L,12,L,10,R,10'}
+	for a, b in funcs.items():
+		path = path.replace(b, a)
+	inp = [ord(a) for a in path] + [10]
+	for a in 'ABC':
+		inp += [ord(b) for b in funcs[a]] + [10]
+	inp += [ord('n'), 10]
+	out, pc, rb = interpreter(program, inp)
+	result = out[-1]
+	out = ''.join(chr(a) for a in out[:-1]).strip()
+	# print(out)
+	return result
+
+
+def day19a(s):
+	program = parseprog(s)
+	result = 0
+	for y in range(50):
+		for x in range(50):
+			out, pc, rb = interpreter(program.copy(), [x, y])
+			result += out[0] == 1
+	return result
+
+
+def day19b(s, gridsize=2000, ship=100, step=50):
+	def explore(y):
+		if not grid[y, :].any():
+			start = False
+			minx = 0
+			if y and grid[y - 1, :].any():
+				minx = grid[y - 1, :].nonzero()[0][0]
+			for x in range(minx, gridsize):
+				out, pc, rb = interpreter(program.copy(), [x, y])
+				grid[y, x] = out[0]
+				if out[0] and not start:
+					start = True
+				elif not out[0] and start:
+					break
+
+	program = parseprog(s)
+	grid = np.zeros((gridsize, gridsize), dtype=bool)
+	y = 0
+	while True:
+		explore(y)
+		explore(y + ship - 1)
+		x = grid[y + ship - 1, :].nonzero()[0][0]
+		if grid[y, x + ship - 1] and grid[y + ship - 1, x]:
+			y -= 2 * step
+			break
+		y += step
+	while True:
+		explore(y)
+		explore(y + ship - 1)
+		x = grid[y + ship - 1, :].nonzero()[0][0]
+		if grid[y, x + ship - 1] and grid[y + ship - 1, x]:
+			return x * 10000 + y
+		y += 1
 
 
 def parseprog(s):
