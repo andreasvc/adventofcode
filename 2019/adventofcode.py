@@ -668,6 +668,31 @@ def day15b(s):
 	return mins
 
 
+def day16a(s, phases=100):
+	nums = np.array([int(a) for a in s], dtype=int)
+	patterns = []
+	for m, _ in enumerate(nums, 1):
+		patterns.append(np.tile(np.array([0, 1, 0, -1], dtype=np.int8
+				).repeat(m), len(nums) // (4 * m) + 1)[1:len(nums) + 1])
+	patterns = np.array(patterns)
+	for n in range(1, phases + 1):
+		nums = np.abs(nums @ patterns.T) % 10
+	return ''.join(str(a) for a in nums[:8])
+
+
+def day16b(s, phases=100):
+	nums = np.tile(np.array([int(a) for a in s], dtype=int), 10000)
+	size = len(nums)
+	offset = int(''.join(str(a) for a in nums[:7]))
+	nums = nums[offset:]
+	nums = np.append(nums, [0])
+	for _ in range(phases):
+		for m in range(size - offset - 1, -1, -1):
+			nums[m] += nums[m + 1]
+		nums %= 10
+	return ''.join(str(a) for a in nums[:8])
+
+
 def parseprog(s):
 	return defaultdict(int, enumerate(int(a) for a in s.split(',')))
 
