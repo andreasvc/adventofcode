@@ -1,4 +1,4 @@
-"""Advent of Code 2021. http://adventofcode.com/2021 """
+"""Advent of Code 2022. http://adventofcode.com/2022 """
 # import re
 import sys
 # import json
@@ -35,6 +35,19 @@ def day2(s):
 		else a + 3 if b == draw
 		else (scissors if a == paper else rock if a == scissors else paper) + 6
 		for a, b in strategies)
+	return part1, part2
+
+
+def day3(s):
+	part1 = part2 = 0
+	lines = s.splitlines()
+	for line in lines:
+		half = len(line) // 2
+		item = next(iter(set(line[:half]) & set(line[half:])))
+		part1 += ord(item) - 96 if item.islower() else (ord(item) - 64 + 26)
+	for l1, l2, l3 in zip(lines[::3], lines[1::3], lines[2::3]):
+		item = next(iter(set(l1) & set(l2) & set(l3)))
+		part2 += ord(item) - 96 if item.islower() else (ord(item) - 64 + 26)
 	return part1, part2
 
 
