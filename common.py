@@ -22,12 +22,14 @@ def benchmark(glb):
 	for name in list(glb):
 		match = re.match(r'day(\d+)[ab]?', name)
 		if match is not None and os.path.exists('i%s' % match.group(1)):
-			time = timeit.timeit(
+			timer = timeit.Timer(
 					'%s(inp)' % name,
 					setup='inp = open("i%s").read().rstrip("\\n")'
 						% match.group(1),
-					number=1,
+					# number=1,
 					globals=glb)
+			number, time = timer.autorange()
+			time /= number
 			total += time
 			print('%s\t%ss' % (name, colortime(time)))
 	print('total:  %ss' % colortime(total))

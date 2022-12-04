@@ -1,5 +1,5 @@
 """Advent of Code 2022. http://adventofcode.com/2022 """
-import re
+# import re
 import sys
 # import json
 # import itertools
@@ -20,21 +20,21 @@ def day1(s):
 
 
 def day2(s):
-	strategies = [line.split() for line in s.splitlines()]
-	strategies = [(ord(a) - 64, ord(b) - 87) for a, b in strategies]
 	rock, paper, scissors = lose, draw, _ = (1, 2, 3)
-	part1 = sum(b + (3 if a == b else
-		0 if (a == rock and b == scissors)
-			or (a == paper and b == rock)
-			or (a == scissors and b == paper)
-		else 6)
-		for a, b in strategies)
-	part2 = sum(
-		(paper if a == scissors else scissors if a == rock else rock)
-		if b == lose
-		else a + 3 if b == draw
-		else (scissors if a == paper else rock if a == scissors else paper) + 6
-		for a, b in strategies)
+	part1 = part2 = 0
+	for line in s.splitlines():
+		a, b = line.split()
+		a, b = ord(a) - 64, ord(b) - 87
+		part1 += b + (3 if a == b else
+				0 if (a == rock and b == scissors)
+					or (a == paper and b == rock)
+					or (a == scissors and b == paper)
+				else 6)
+		part2 += ((paper if a == scissors else scissors if a == rock else rock)
+				if b == lose
+				else a + 3 if b == draw
+				else (scissors if a == paper else rock if a == scissors
+					else paper) + 6)
 	return part1, part2
 
 
@@ -52,13 +52,16 @@ def day3(s):
 
 
 def day4(s):
-	nums = [[int(x) for x in re.findall(r'\d+', line)]
-			for line in s.splitlines()]
-	sets = [(set(range(a, b + 1)), set(range(c, d + 1)))
-			for a, b, c, d in nums]
-	part1 = sum(a <= b or a >= b for a, b in sets)
-	part2 = sum(not a.isdisjoint(b) for a, b in sets)
+	part1 = part2 = 0
+	for line in s.splitlines():
+		a, b, c, d = map(int, line.replace(',', '-').split('-'))
+		part1 += (a - c) * (b - d) <= 0
+		part2 += a <= d and b >= c
 	return part1, part2
+
+
+def day5(s):
+	...
 
 
 if __name__ == '__main__':
