@@ -1,5 +1,5 @@
 """Advent of Code 2022. http://adventofcode.com/2022 """
-# import re
+import re
 import sys
 # import json
 # import itertools
@@ -48,6 +48,16 @@ def day3(s):
 	for l1, l2, l3 in zip(lines[::3], lines[1::3], lines[2::3]):
 		item = next(iter(set(l1) & set(l2) & set(l3)))
 		part2 += ord(item) - 96 if item.islower() else (ord(item) - 64 + 26)
+	return part1, part2
+
+
+def day4(s):
+	nums = [[int(x) for x in re.findall(r'\d+', line)]
+			for line in s.splitlines()]
+	sets = [(set(range(a, b + 1)), set(range(c, d + 1)))
+			for a, b, c, d in nums]
+	part1 = sum(a <= b or a >= b for a, b in sets)
+	part2 = sum(not a.isdisjoint(b) for a, b in sets)
 	return part1, part2
 
 
