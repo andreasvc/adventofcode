@@ -1,6 +1,7 @@
 """Advent of Code 2023. http://adventofcode.com/2023 """
 import re
 import sys
+from math import prod
 # import json
 # import itertools
 # from operator import lt, gt, eq
@@ -29,6 +30,26 @@ def day1(s):
 		digit1 = x.search(line).group()
 		digit2 = xx.search(line[::-1]).group()[::-1]
 		result2 += int(conv[digit1] + conv[digit2])
+	return result1, result2
+
+
+def day2(s):
+	maxnum = {'red': 12, 'green': 13, 'blue': 14}
+	pat = re.compile(r'(\d+) (red|green|blue)')
+	result1 = result2 = 0
+	for line in s.splitlines():
+		gameid, rest = line.split(':', 1)
+		minnum = {'red': 0, 'green': 0, 'blue': 0}
+		possible = True
+		for num, color in pat.findall(rest):
+			num = int(num)
+			if num > maxnum[color]:
+				possible = False
+			if num > minnum[color]:
+				minnum[color] = num
+		if possible:
+			result1 += int(gameid.split()[1])
+		result2 += prod(minnum.values())
 	return result1, result2
 
 
