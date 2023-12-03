@@ -3,7 +3,7 @@ import re
 import sys
 from math import prod
 # import json
-# import itertools
+import itertools
 # from operator import lt, gt, eq
 # from functools import reduce
 # from collections import defaultdict, Counter
@@ -50,6 +50,38 @@ def day2(s):
 		if possible:
 			result1 += int(gameid.split()[1])
 		result2 += prod(minnum.values())
+	return result1, result2
+
+
+def day3(s):
+	grid = s.splitlines()
+	xmax, ymax = len(grid[0]), len(grid)
+	result1 = 0
+	for y, line in enumerate(grid):
+		for match in re.finditer(r'\d+', line):
+			context = ''
+			a, b = match.span()
+			if y > 0:
+				context += grid[y - 1][max(0, a - 1):min(ymax, b + 1)]
+			context += line[max(0, a - 1):min(xmax, b + 1)]
+			if y < ymax - 1:
+				context += grid[y + 1][max(0, a - 1):min(ymax, b + 1)]
+			if re.search(r'[^.\d]', context) is not None:
+				result1 += int(match.group())
+	result2 = 0
+	for y, line in enumerate(grid):
+		for match in re.finditer(r'\*', line):
+			x = match.start()
+			nums = set()
+			for yy, xx in itertools.product(
+					(y - 1, y, y + 1), (x - 1, x, x + 1)):
+				if 0 <= yy < ymax and 0 <= xx < xmax:
+					if grid[yy][xx].isdigit():
+						nums.add([int(match.group())
+								for match in re.finditer(r'\d+', grid[yy])
+								if match.start() <= xx < match.end()][0])
+			if len(nums) == 2:
+				result2 += prod(nums)
 	return result1, result2
 
 
