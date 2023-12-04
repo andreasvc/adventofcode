@@ -55,33 +55,29 @@ def day2(s):
 
 def day3(s):
 	grid = s.splitlines()
-	xmax, ymax = len(grid[0]), len(grid)
-	result1 = 0
-	for y, line in enumerate(grid):
-		for match in re.finditer(r'\d+', line):
-			context = ''
-			a, b = match.span()
-			if y > 0:
-				context += grid[y - 1][max(0, a - 1):min(ymax, b + 1)]
-			context += line[max(0, a - 1):min(xmax, b + 1)]
-			if y < ymax - 1:
-				context += grid[y + 1][max(0, a - 1):min(ymax, b + 1)]
-			if re.search(r'[^.\d]', context) is not None:
-				result1 += int(match.group())
-	result2 = 0
-	for y, line in enumerate(grid):
-		for match in re.finditer(r'\*', line):
-			x = match.start()
-			nums = set()
+	symb = {(yy, xx)
+			for y, line in enumerate(grid)
+			for x, char in enumerate(line)
+			if char != '.' and not char.isdigit()
 			for yy, xx in itertools.product(
-					(y - 1, y, y + 1), (x - 1, x, x + 1)):
-				if 0 <= yy < ymax and 0 <= xx < xmax:
-					if grid[yy][xx].isdigit():
-						nums.add([int(match.group())
-								for match in re.finditer(r'\d+', grid[yy])
-								if match.start() <= xx < match.end()][0])
-			if len(nums) == 2:
-				result2 += prod(nums)
+                        (y - 1, y, y + 1),
+                        (x - 1, x, x + 1))}
+	num = {(y, x): (int(match.group()), y, match.start())
+			for y, line in enumerate(grid)
+			for match in re.finditer(r'\d+', line)
+			for x in range(match.start(), match.end())}
+	result1 = result2 = 0
+	for y, line in enumerate(grid):
+		for x, char in enumerate(line):
+			if char == '*':
+				nums = {num[yy, xx]
+						for yy, xx in itertools.product(
+							(y - 1, y, y + 1),
+							(x - 1, x, x + 1))
+						if (yy, xx) in num}
+				if len(nums) == 2:
+					result2 += prod(n for n, _, _ in nums)
+	result1 = sum(a for a, _, _ in {num[y, x] for y, x in symb & num.keys()})
 	return result1, result2
 
 
