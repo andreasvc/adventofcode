@@ -87,23 +87,17 @@ def day3(s):
 
 def day4(s):
 	result1 = 0
-	cards = []
-	for n, line in enumerate(s.splitlines()):
+	lines = s.splitlines()
+	cnt = [1 for _ in lines]
+	for n, line in enumerate(lines):
 		wins, ours = line.split(':')[1].split('|')
-		wins = {int(a) for a in wins.split()}
-		ours = {int(a) for a in ours.split()}
-		cards.append((n, len(wins & ours)))
-	for _, wins in cards:
+		wins = len({int(a) for a in wins.split()}
+				& {int(a) for a in ours.split()})
 		if wins:
 			result1 += 2 ** (wins - 1)
-	result2 = 0
-	agenda = cards[:]
-	while agenda:
-		n, wins = agenda.pop()
-		result2 += 1
-		if wins:
-			agenda.extend(cards[n + 1:n + wins + 1])
-	return result1, result2
+		for m in range(n + 1, n + wins + 1):
+			cnt[m] += cnt[n]
+	return result1, sum(cnt)
 
 if __name__ == '__main__':
 	main(globals())
