@@ -95,5 +95,33 @@ def day4(s):
 			cnt[m] += cnt[n]
 	return result1, sum(cnt)
 
+
+def day5(s):
+	...
+
+
+def day6(s):
+	def f(a, b):
+		return sum((a - n) * n > b for n in range(1, a + 1))
+
+	def search(a, b, f):
+		lo, hi = 0, a
+		while lo < hi:
+			mid = (lo + hi) // 2
+			if f(mid):
+				lo = mid + 1
+			else:
+				hi = mid
+		return lo
+
+	times, dists = [line.split(':')[1].split() for line in s.splitlines()]
+	result1 = prod(f(a, b) for a, b in zip(map(int, times), map(int, dists)))
+	a, b = int(''.join(times)), int(''.join(dists))
+	hi = search(a, b, lambda n: (a - n) * n > b)
+	lo = search(a, b, lambda n: (a - n) * n <= b)
+	result2 = hi - lo
+	return result1, result2
+
+
 if __name__ == '__main__':
 	main(globals())
