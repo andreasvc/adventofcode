@@ -5,12 +5,14 @@ from math import prod
 # import json
 import itertools
 # from operator import lt, gt, eq
-# from functools import reduce
+# from functools import cache, reduce
 # from collections import defaultdict, Counter
 # from functools import cmp_to_key
 # from heapq import heappush, heappop
-# import numpy as np
 # from colorama import Fore, Style
+import numpy as np
+from numba import njit
+from numba.typed import List
 sys.path.append('..')
 from common import main
 
@@ -96,8 +98,35 @@ def day4(s):
 	return result1, sum(cnt)
 
 
+@njit
+def _day5(n, maps):
+	for m in maps:
+		for a, b, c in m:
+			if b <= n < b + c:
+				n = a + n - b
+				break
+	return n
+
+
+@njit
+def day5b(seeds, maps):
+	result2 = _day5(seeds[0], maps)
+	for a, b in zip(seeds[::2], seeds[1::2]):
+		for n in range(a, a + b):
+			result2 = min(result2, _day5(n, maps))
+	return result2
+
+
 def day5(s):
-	...
+	maps = s.split('\n\n')
+	seeds = [int(a) for a in maps[0].split(':')[1].split()]
+	maps = [[[int(a) for a in line.split()]
+				for line in m.splitlines()[1:]]
+			for m in maps[1:]]
+	maps = [np.array(m, dtype=int) for m in maps]
+	maps = List(maps)
+	result2 = day5b(np.array(seeds, dtype=int), maps)
+	return min(_day5(s, maps) for s in seeds), result2
 
 
 def day6(s):
