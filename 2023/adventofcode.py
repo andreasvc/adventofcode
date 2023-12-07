@@ -154,7 +154,8 @@ def day6(s):
 
 def day7(s):
 	def evaluate_joker(hand):
-		return evaluate(hand.replace('A', max('MLKJIHGFEDCBA', key=hand.count)), hand)
+		return max(evaluate(hand.replace('A', n), hand)
+				for n in 'MLKJIHGFEDCBA')
 
 	def evaluate(hand, orig):
 		return sum(hand.count(a) for a in hand), orig
