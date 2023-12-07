@@ -6,7 +6,7 @@ from math import prod
 import itertools
 # from operator import lt, gt, eq
 # from functools import cache, reduce
-from collections import Counter  # defaultdict
+# from collections import Counter, defaultdict
 # from functools import cmp_to_key
 # from heapq import heappush, heappop
 # from colorama import Fore, Style
@@ -153,40 +153,21 @@ def day6(s):
 
 
 def day7(s):
-	def evaluate_joker(line, J=12):
-		hand, _ = line
-		newhands = [hand]
-		if J in hand:
-			jidxs = [n for n, a in enumerate(hand) if a == J]
-			# for cmb in itertools.product(*[list(strengths.values()) for _ in jidxs]):
-			for cmb in combs[len(jidxs)]:
-				newhand = hand[:]
-				for idx, new in zip(jidxs, cmb):
-					newhand[idx] = new
-				newhands.append(newhand)
-		return min(evaluate(newhand, hand) for newhand in newhands)
+	def evaluate_joker(hand):
+		return evaluate(hand.replace('A', max('MLKJIHGFEDCBA', key=hand.count)), hand)
 
 	def evaluate(hand, orig):
-		counts = sorted(Counter(hand).values(), reverse=True)
-		return [types.index(counts)] + orig
+		return sum(hand.count(a) for a in hand), orig
 
-	types = [[5],
-			[4, 1],
-			[3, 2],
-			[3, 1, 1],
-			[2, 2, 1],
-			[2, 1, 1, 1],
-			[1, 1, 1, 1, 1]]
-	strengths = dict(zip('A, K, Q, J, T, 9, 8, 7, 6, 5, 4, 3, 2'.split(', '), range(13)))
-	hands = [[[strengths[a] for a in hand], int(bid)] for hand, bid in [line.split() for line in s.splitlines()]]
+	lines = [line.split() for line in s.splitlines()]
+	trans = str.maketrans('AKQJT98765432', 'MLKJIHGFEDCBA')
+	hands = [[hand.translate(trans), int(bid)] for hand, bid in lines]
 	result1 = sum(rank * bid for rank, (_hand, bid)
-			in enumerate(sorted(hands, key=lambda x: evaluate(x[0], x[0]), reverse=True), 1))
-	strengths = dict(zip('A, K, Q, T, 9, 8, 7, 6, 5, 4, 3, 2, J'.split(', '), range(13)))
-	hands = [[[strengths[a] for a in hand], int(bid)] for hand, bid in [line.split() for line in s.splitlines()]]
-	combs = {n: list(itertools.product(*[list(strengths.values()) for _ in range(n)]))
-			for n in range(1, 6)}
+			in enumerate(sorted(hands, key=lambda x: evaluate(x[0], x[0])), 1))
+	trans = str.maketrans('AKQT98765432J', 'MLKJIHGFEDCBA')
+	hands = [[hand.translate(trans), int(bid)] for hand, bid in lines]
 	result2 = sum(rank * bid for rank, (_hand, bid)
-			in enumerate(sorted(hands, key=evaluate_joker, reverse=True), 1))
+			in enumerate(sorted(hands, key=lambda x: evaluate_joker(x[0])), 1))
 	return result1, result2
 
 
