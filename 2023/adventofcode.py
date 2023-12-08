@@ -11,8 +11,8 @@ import itertools
 # from heapq import heappush, heappop
 # from colorama import Fore, Style
 import numpy as np
-from numba import njit
-from numba.typed import List
+# from numba import njit
+# from numba.typed import List
 sys.path.append('..')
 from common import main
 
@@ -98,7 +98,6 @@ def day4(s):
 	return result1, sum(cnt)
 
 
-@njit
 def _day5(n, maps):
 	for m in maps:
 		for a, b, c in m:
@@ -108,12 +107,21 @@ def _day5(n, maps):
 	return n
 
 
-@njit
-def day5b(seeds, maps):
+def _day5b(seeds, maps):
 	result2 = _day5(seeds[0], maps)
 	for a, b in zip(seeds[::2], seeds[1::2]):
-		for n in range(a, a + b):
-			result2 = min(result2, _day5(n, maps))
+		for n in range(a, a + b, max(1, b // 100)):
+			x = _day5(n, maps)
+			if x < result2:
+				result2, ma, mn = x, a, n
+	for m in range(10, -1, -1):
+		step = 2 ** m
+		while mn - step >= ma:
+			x = _day5(mn - step, maps)
+			if x < result2:
+				result2, mn = x, mn - step
+			else:
+				break
 	return result2
 
 
@@ -124,8 +132,7 @@ def day5(s):
 				for line in m.splitlines()[1:]]
 			for m in maps[1:]]
 	maps = [np.array(m, dtype=int) for m in maps]
-	maps = List(maps)
-	result2 = day5b(np.array(seeds, dtype=int), maps)
+	result2 = _day5b(np.array(seeds, dtype=int), maps)
 	return min(_day5(s, maps) for s in seeds), result2
 
 
@@ -154,23 +161,26 @@ def day6(s):
 
 def day7(s):
 	def evaluate_joker(hand):
-		return max(evaluate(hand.replace('A', n), hand)
+		return max(evaluate(hand.replace('A', n))
 				for n in 'MLKJIHGFEDCBA')
 
-	def evaluate(hand, orig):
-		return sum(hand.count(a) for a in hand), orig
+	def evaluate(hand):
+		return sum(hand.count(a) for a in hand)
 
 	lines = [line.split() for line in s.splitlines()]
 	trans = str.maketrans('AKQJT98765432', 'MLKJIHGFEDCBA')
 	hands = [[hand.translate(trans), int(bid)] for hand, bid in lines]
 	result1 = sum(rank * bid for rank, (_hand, bid)
-			in enumerate(sorted(hands, key=lambda x: evaluate(x[0], x[0])), 1))
+			in enumerate(sorted(hands, key=lambda x: (evaluate(x[0]), x[0])), 1))
 	trans = str.maketrans('AKQT98765432J', 'MLKJIHGFEDCBA')
 	hands = [[hand.translate(trans), int(bid)] for hand, bid in lines]
 	result2 = sum(rank * bid for rank, (_hand, bid)
-			in enumerate(sorted(hands, key=lambda x: evaluate_joker(x[0])), 1))
+			in enumerate(sorted(hands, key=lambda x: (evaluate_joker(x[0]), x[0])), 1))
 	return result1, result2
 
+
+def day8(s):
+	...
 
 if __name__ == '__main__':
 	main(globals())
