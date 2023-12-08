@@ -1,7 +1,7 @@
 """Advent of Code 2023. http://adventofcode.com/2023 """
 import re
 import sys
-from math import prod
+from math import prod, lcm
 # import json
 import itertools
 # from operator import lt, gt, eq
@@ -180,7 +180,29 @@ def day7(s):
 
 
 def day8(s):
-	...
+	lines = s.splitlines()
+	dirs = lines[0]
+	graph = {a: (b, c) for a, b, c
+			in [re.findall('\w\w\w', line) for line in lines[2:]]}
+	dirs = itertools.cycle(dirs)
+	node = 'AAA'
+	result1 = 0
+	while node != 'ZZZ':
+		node = graph[node][next(dirs) == 'R']
+		result1 += 1
+	nodes = [a for a in graph if a.endswith('A')]
+	firstz = {}
+	steps = 0
+	while len(firstz) != len(nodes):
+		d = next(dirs)
+		nodes = [graph[node][d == 'R'] for node in nodes]
+		steps += 1
+		for n, node in enumerate(nodes):
+			if n not in firstz and node.endswith('Z'):
+				firstz[n] = steps
+	result2 = lcm(*firstz.values())
+	return result1, result2
+
 
 if __name__ == '__main__':
 	main(globals())
