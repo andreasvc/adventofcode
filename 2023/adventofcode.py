@@ -207,14 +207,13 @@ def day8(s):
 def day9(s):
 	result1 = result2 = 0
 	for line in s.splitlines():
-		data = np.array([int(a) for a in line.split()], dtype=int)
-		nums = [data]
-		while nums[-1].any():
-			nums.append(nums[-1][1:] - nums[-1][:-1])
-		nums[-1] = np.append(nums[-1], 0)
-		for n in range(len(nums) - 2, -1, -1):
-			nums[n] = np.append(nums[n], nums[n][-1] + nums[n + 1][-1])
-			nums[n] = np.insert(nums[n], 0, nums[n][0] - nums[n + 1][0])
+		nums = [[int(a) for a in line.split()]]
+		while any(nums[-1]):
+			nums.append([a - b for a, b in zip(nums[-1][1:], nums[-1])])
+		nums[-1].append(0)
+		for a, b in zip(nums[:-1][::-1], nums[::-1]):
+			a.append(a[-1] + b[-1])
+			a.insert(0, a[0] - b[0])
 		result1 += nums[0][-1]
 		result2 += nums[0][0]
 	return result1, result2
