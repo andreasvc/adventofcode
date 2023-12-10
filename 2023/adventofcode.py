@@ -243,36 +243,26 @@ def day10(s):
 	unilines = {'|': '│', '-': '─', 'L': '└', 'J': '┘', '7': '┐', 'F': '┌'}
 	grid = ['.' + line + '.' for line in s.splitlines()]
 	grid = ['.' * len(grid[0])] + grid + ['.' * len(grid[0])]
-	conn = {
-			'|': [(-1, 0), (1, 0)],
+	conn = {'|': [(-1, 0), (1, 0)],
 			'-': [(0, -1), (0, 1)],
 			'L': [(-1, 0), (0, 1)],
 			'J': [(-1, 0), (0, -1)],
 			'7': [(1, 0), (0, -1)],
-			'F': [(1, 0), (0, 1)],
-			'.': [], 'S': []}
-	fitstart = {
-			(0, -1): '-LF',
-			(0, 1): '-J7',
-			(-1, 0): '|LJ',
-			(1, 0): '|F7'}
-	sy = [n for n, line in enumerate(grid) if 'S' in line][0]
-	sx = grid[sy].index('S')
-	y, x = [(sy + dy, sx + dx)
-			for dy, dx in fitstart
-			if grid[sy + dy][sx + dx] in fitstart[dy, dx]][0]
-	steps = 1
-	visited = {(sy, sx): 0, (y, x): steps}
-	while True:
+			'F': [(1, 0), (0, 1)]}
+	y = [n for n, line in enumerate(grid) if 'S' in line][0]
+	x = grid[y].index('S')
+	visited = {(y, x)}
+	options = [(y + dy, x + dx)
+			for dy, dx in [(-1, 0), (1, 0), (0, -1), (0, 1)]
+			if any(dy + ddy == dx + ddx == 0
+				for ddy, ddx in conn[grid[y + dy][x + dx]])]
+	while options:
+		y, x = options.pop()
+		visited.add((y, x))
 		options = [(y + dy, x + dx) for dy, dx
 				in conn[grid[y][x]]
 				if (y + dy, x + dx) not in visited]
-		if not options:
-			break
-		y, x = options.pop()
-		steps += 1
-		visited[y, x] = steps
-	result1 = (steps // 2) + (steps % 2)
+	result1 = (len(visited) // 2) + (len(visited) % 2)
 
 	# double resolution of grid to enable flood fill between adjacent lines
 	enlarge = [
@@ -291,9 +281,8 @@ def day10(s):
 		y, x = queue.pop()
 		if (y, x) not in outside:
 			outside.add((y, x))
-			for dy, dx in itertools.product((-1, 0, 1), (-1, 0, 1)):
-				if ((dy != 0 or dx != 0)
-						and 0 <= y + dy < len(supergrid)
+			for dy, dx in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+				if (0 <= y + dy < len(supergrid)
 						and 0 <= x + dx < len(supergrid[0])):
 					queue.append((y + dy, x + dx))
 	# dump()
@@ -302,6 +291,10 @@ def day10(s):
 				for x, _ in enumerate(grid[0])
 				if (y * r + 1, x * r + 1) not in outside])
 	return result1, result2
+
+
+def day11(s):
+	...
 
 
 if __name__ == '__main__':
