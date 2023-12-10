@@ -226,7 +226,7 @@ def day10(s):
 				Fore.GREEN + unilines.get(b, b) + Style.RESET_ALL
 				if (yy, xx) in visited
 				else Fore.RED + unilines.get(b, b) + Style.RESET_ALL
-				if (yy * 3 + 1, xx * 3 + 1) in outside
+				if (yy * r + 1, xx * r + 1) in outside
 				else unilines.get(b, b) for xx, b in enumerate(line)))
 		print()
 
@@ -274,16 +274,16 @@ def day10(s):
 		visited[y, x] = steps
 	result1 = (steps // 2) + (steps % 2)
 
-	# triple resolution of grid to enable flood fill between adjacent lines
+	# double resolution of grid to enable flood fill between adjacent lines
 	enlarge = [
-			{'|': '.|.', '-': '...', 'L': '.|.', 'J': '.|.', '7': '...', 'F': '...', '.': '...', 'S': '.|.'},
-			{'|': '.|.', '-': '---', 'L': '.L-', 'J': '-J.', '7': '-7.', 'F': '.F-', '.': '...', 'S': '-S-'},
-			{'|': '.|.', '-': '...', 'L': '...', 'J': '...', '7': '.|.', 'F': '.|.', '.': '...', 'S': '.|.'}]
+			{'|': '.|', '-': '..', 'L': '.|', 'J': '.|', '7': '..', 'F': '..', '.': '..', 'S': '.|'},
+			{'|': '.|', '-': '--', 'L': '.L', 'J': '-J', '7': '-7', 'F': '.F', '.': '..', 'S': '-S'}]
+	r = 2
 	supergrid = [''.join(enlarge[n][a] for a in line)
 			for line in grid
-				for n in range(3)]
-	svisited = {(3 * y + dy, 3 * x + dx) for y, x in visited
-			for dy in range(3) for dx in range(3)
+				for n in range(r)]
+	svisited = {(r * y + dy, r * x + dx) for y, x in visited
+			for dy in range(r) for dx in range(r)
 			if enlarge[dy][grid[y][x]][dx] != '.'}
 	outside = svisited.copy()
 	queue = [(0, 0)]
@@ -300,7 +300,7 @@ def day10(s):
 	# dump2()
 	result2 = len([(y, x) for y, _ in enumerate(grid)
 				for x, _ in enumerate(grid[0])
-				if (y * 3 + 1, x * 3 + 1) not in outside])
+				if (y * r + 1, x * r + 1) not in outside])
 	return result1, result2
 
 
