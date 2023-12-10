@@ -9,7 +9,7 @@ import itertools
 # from collections import Counter, defaultdict
 # from functools import cmp_to_key
 # from heapq import heappush, heappop
-# from colorama import Fore, Style
+from colorama import Fore, Style
 import numpy as np
 # from numba import njit
 # from numba.typed import List
@@ -216,6 +216,91 @@ def day9(s):
 			a.insert(0, a[0] - b[0])
 		result1 += nums[0][-1]
 		result2 += nums[0][0]
+	return result1, result2
+
+
+def day10(s):
+	def dump():
+		for yy, line in enumerate(grid):
+			print(''.join(
+				Fore.GREEN + unilines.get(b, b) + Style.RESET_ALL
+				if (yy, xx) in visited
+				else Fore.RED + unilines.get(b, b) + Style.RESET_ALL
+				if (yy * 3 + 1, xx * 3 + 1) in outside
+				else unilines.get(b, b) for xx, b in enumerate(line)))
+		print()
+
+	def dump2():
+		for yy, line in enumerate(supergrid):
+			print(''.join(
+				Fore.GREEN + unilines.get(b, b) + Style.RESET_ALL
+				if (yy, xx) in svisited
+				else Fore.RED + unilines.get(b, b) + Style.RESET_ALL
+				if (yy, xx) in outside
+				else unilines.get(b, b) for xx, b in enumerate(line)))
+		print()
+
+	unilines = {'|': '│', '-': '─', 'L': '└', 'J': '┘', '7': '┐', 'F': '┌'}
+	grid = ['.' + line + '.' for line in s.splitlines()]
+	grid = ['.' * len(grid[0])] + grid + ['.' * len(grid[0])]
+	conn = {
+			'|': [(-1, 0), (1, 0)],
+			'-': [(0, -1), (0, 1)],
+			'L': [(-1, 0), (0, 1)],
+			'J': [(-1, 0), (0, -1)],
+			'7': [(1, 0), (0, -1)],
+			'F': [(1, 0), (0, 1)],
+			'.': [], 'S': []}
+	fitstart = {
+			(0, -1): '-LF',
+			(0, 1): '-J7',
+			(-1, 0): '|LJ',
+			(1, 0): '|F7'}
+	sy = [n for n, line in enumerate(grid) if 'S' in line][0]
+	sx = grid[sy].index('S')
+	y, x = [(sy + dy, sx + dx)
+			for dy, dx in fitstart
+			if grid[sy + dy][sx + dx] in fitstart[dy, dx]][0]
+	steps = 1
+	visited = {(sy, sx): 0, (y, x): steps}
+	while True:
+		options = [(y + dy, x + dx) for dy, dx
+				in conn[grid[y][x]]
+				if (y + dy, x + dx) not in visited]
+		if not options:
+			break
+		y, x = options.pop()
+		steps += 1
+		visited[y, x] = steps
+	result1 = (steps // 2) + (steps % 2)
+
+	# triple resolution of grid to enable flood fill between adjacent lines
+	enlarge = [
+			{'|': '.|.', '-': '...', 'L': '.|.', 'J': '.|.', '7': '...', 'F': '...', '.': '...', 'S': '.|.'},
+			{'|': '.|.', '-': '---', 'L': '.L-', 'J': '-J.', '7': '-7.', 'F': '.F-', '.': '...', 'S': '-S-'},
+			{'|': '.|.', '-': '...', 'L': '...', 'J': '...', '7': '.|.', 'F': '.|.', '.': '...', 'S': '.|.'}]
+	supergrid = [''.join(enlarge[n][a] for a in line)
+			for line in grid
+				for n in range(3)]
+	svisited = {(3 * y + dy, 3 * x + dx) for y, x in visited
+			for dy in range(3) for dx in range(3)
+			if enlarge[dy][grid[y][x]][dx] != '.'}
+	outside = svisited.copy()
+	queue = [(0, 0)]
+	while queue:
+		y, x = queue.pop()
+		if (y, x) not in outside:
+			outside.add((y, x))
+			for dy, dx in itertools.product((-1, 0, 1), (-1, 0, 1)):
+				if ((dy != 0 or dx != 0)
+						and 0 <= y + dy < len(supergrid)
+						and 0 <= x + dx < len(supergrid[0])):
+					queue.append((y + dy, x + dx))
+	# dump()
+	# dump2()
+	result2 = len([(y, x) for y, _ in enumerate(grid)
+				for x, _ in enumerate(grid[0])
+				if (y * 3 + 1, x * 3 + 1) not in outside])
 	return result1, result2
 
 
