@@ -294,7 +294,23 @@ def day10(s):
 
 
 def day11(s):
-	...
+	grid = [[a == '#' for a in line] for line in s.splitlines()]
+	emptyrows = [n for n, line in enumerate(grid)
+			if not any(line)]
+	emptycols = [n for n, _ in enumerate(grid[0])
+			if not any(line[n] for line in grid)]
+	coords = [(y, x) for y, _ in enumerate(grid)
+			for x, _ in enumerate(grid[0])
+				if grid[y][x]]
+	result1 = result2 = 0
+	for n, (y1, x1) in enumerate(coords):
+		for y2, x2 in coords[n + 1:]:
+			dist = abs(y2 - y1) + abs(x2 - x1)
+			extrarows = sum(1 for n in emptyrows if y1 < n < y2)
+			extracols = sum(1 for n in emptycols if x1 < n < x2)
+			result1 += dist + extrarows + extracols
+			result2 += dist + (1000000 - 1) * (extrarows + extracols)
+	return result1, result2
 
 
 if __name__ == '__main__':
