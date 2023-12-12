@@ -5,7 +5,7 @@ from math import prod, lcm
 # import json
 import itertools
 # from operator import lt, gt, eq
-# from functools import cache, reduce
+from functools import cache  # , reduce
 # from collections import Counter, defaultdict
 # from functools import cmp_to_key
 # from heapq import heappush, heappop
@@ -295,13 +295,11 @@ def day10(s):
 
 def day11(s):
 	grid = [[a == '#' for a in line] for line in s.splitlines()]
-	emptyrows = [n for n, line in enumerate(grid)
-			if not any(line)]
+	emptyrows = [n for n, line in enumerate(grid) if not any(line)]
 	emptycols = [n for n, _ in enumerate(grid[0])
 			if not any(line[n] for line in grid)]
 	coords = [(y, x) for y, _ in enumerate(grid)
-			for x, _ in enumerate(grid[0])
-				if grid[y][x]]
+			for x, _ in enumerate(grid[0]) if grid[y][x]]
 	result1 = result2 = 0
 	for n, (y1, x1) in enumerate(coords):
 		for y2, x2 in coords[n + 1:]:
@@ -310,6 +308,32 @@ def day11(s):
 			extracols = sum(1 for n in emptycols if x1 < n < x2)
 			result1 += dist + extrarows + extracols
 			result2 += dist + (1000000 - 1) * (extrarows + extracols)
+	return result1, result2
+
+
+def day12(s):
+	@cache
+	def f(line, nums):
+		if len(nums) == 0:
+			return 0 if '#' in line else 1
+		elif len(line) == 0:
+			return 0
+		elif line[0] == '.':
+			return f(line[1:], nums)
+		elif line[0] == '#':
+			if '.' in line[:nums[0]] or len(line) < nums[0] or (
+					nums[0] < len(line) and line[nums[0]] == '#'):
+				return 0
+			return f(line[nums[0] + 1:], nums[1:])
+		elif line[0] == '?':
+			return f('#' + line[1:], nums) + f(line[1:], nums)
+
+	result1 = result2 = 0
+	for n, line in enumerate(sorted(s.splitlines(), key=len)):
+		line, nums = line.split(' ')
+		nums = tuple([int(a) for a in nums.split(',')])
+		result1 += f(line, nums)
+		result2 += f('?'.join([line] * 5), nums * 5)
 	return result1, result2
 
 
