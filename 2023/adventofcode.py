@@ -338,24 +338,20 @@ def day12(s):
 
 
 def day13(s):
-	def f(diff):
+	def f(grid, diff):
 		for n in range(grid.shape[1] - (grid.shape[1] % 2), 1, -2):
 			if (grid[:, :n] != np.flip(grid[:, :n], axis=1)).sum() == diff:
 				return n // 2
 			if (grid[:, -n:] != np.flip(grid[:, -n:], axis=1)).sum() == diff:
 				return (grid.shape[1] - n) + n // 2
-		for n in range(grid.shape[0] - (grid.shape[0] % 2), 1, -2):
-			if (grid[:n, :] != np.flip(grid[:n, :], axis=0)).sum() == diff:
-				return 100 * n // 2
-			if (grid[-n:, :] != np.flip(grid[-n:, :], axis=0)).sum() == diff:
-				return 100 * ((grid.shape[0] - n) + n // 2)
+		return 0
 
 	result1 = result2 = 0
 	for grid in s.split('\n\n'):
 		grid = np.array([[a == '#' for a in line]
 				for line in grid.splitlines()], dtype=int)
-		result1 += f(0)
-		result2 += f(2)
+		result1 += f(grid, 0) + f(grid.T, 0) * 100
+		result2 += f(grid, 2) + f(grid.T, 2) * 100
 	return result1, result2
 
 
