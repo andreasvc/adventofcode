@@ -355,5 +355,58 @@ def day13(s):
 	return result1, result2
 
 
+def day14(s):
+	grid = np.array([list(line) for line in s.splitlines()]).T
+	for x, y in zip(*(grid == 'O').nonzero()):
+		for a in range(y):
+			if (grid[x, a:y] == '.').all():
+				grid[x, a], grid[x, y] = grid[x, y], grid[x, a]
+				break
+	return sum((grid.shape[1] - y) * sum(a == 'O' for a in grid[:, y])
+			for y in range(grid.shape[1]))
+
+
+def day14b(s):
+	from tqdm import tqdm
+	grid = np.array([list(line) for line in s.splitlines()]).T
+	mem = {}
+	gridstr = '\n'.join(''.join(grid[:, y]) for y in range(grid.shape[1]))
+	for n in tqdm(range(1000000000)):
+		if gridstr in mem:
+			gridstr = mem[gridstr]
+			continue
+		grid = np.array([list(line) for line in gridstr.splitlines()]).T
+		# north
+		for x, y in zip(*(grid == 'O').nonzero()):
+			for a in range(y):
+				if (grid[x, a:y] == '.').all():
+					grid[x, a], grid[x, y] = grid[x, y], grid[x, a]
+					break
+		# west
+		for x, y in zip(*(grid == 'O').nonzero()):
+			for a in range(x):
+				if (grid[a:x, y] == '.').all():
+					grid[a, y], grid[x, y] = grid[x, y], grid[a, y]
+					break
+		# south
+		for x, y in list(zip(*(grid == 'O').nonzero()))[::-1]:
+			for a in range(grid.shape[1] - 1, y, -1):
+				if (grid[x, y + 1:a + 1] == '.').all():
+					grid[x, a], grid[x, y] = grid[x, y], grid[x, a]
+					break
+		# east
+		for x, y in list(zip(*(grid == 'O').nonzero()))[::-1]:
+			for a in range(grid.shape[0] - 1, x, -1):
+				if (grid[x + 1:a +1, y] == '.').all():
+					grid[a, y], grid[x, y] = grid[x, y], grid[a, y]
+					break
+		mem[gridstr] = '\n'.join(
+				''.join(grid[:, y]) for y in range(grid.shape[1]))
+		gridstr = mem[gridstr]
+	grid = np.array([list(line) for line in gridstr.splitlines()]).T
+	return sum((grid.shape[1] - y) * sum(a == 'O' for a in grid[:, y])
+			for y in range(grid.shape[1]))
+
+
 if __name__ == '__main__':
 	main(globals())
