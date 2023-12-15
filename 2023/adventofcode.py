@@ -356,39 +356,69 @@ def day13(s):
 
 
 def day14(s):
-	grid = np.array([list(line) for line in s.splitlines()]).T
-	for x, y in zip(*(grid == 'O').nonzero()):
-		for a in range(y):
-			if (grid[x, a:y] == '.').all():
-				grid[x, a], grid[x, y] = grid[x, y], grid[x, a]
-				break
-	return sum((grid.shape[1] - y) * sum(a == 'O' for a in grid[:, y])
-			for y in range(grid.shape[1])), _day14b(s)
+	def tilt(grid):
+		for x, y in zip(*(grid == 'O').nonzero()):
+			a = y - 1
+			while a >= 0 and grid[x, a] == '.':
+				a -= 1
+			if grid[x, a + 1] == '.':
+				grid[x, a + 1], grid[x, y] = grid[x, y], grid[x, a + 1]
 
-
-def _day14b(s):
 	grid = np.array([list(line) for line in s.splitlines()]).T
-	mem = {}
-	gridstr = '\n'.join(''.join(grid[:, y]) for y in range(grid.shape[1]))
-	for n in range(1000):  # 1000000000)):
-		if gridstr in mem:
-			gridstr = mem[gridstr]
-			continue
-		grid = np.array([list(line) for line in gridstr.splitlines()]).T
+	maxy = grid.shape[1]
+	tilt(grid)
+	coords = tuple(zip(*(grid == 'O').nonzero()))
+	result1 = sum(maxy - y for _, y in coords)
+	grid = np.array([list(line) for line in s.splitlines()]).T
+	coords = tuple(zip(*(grid == 'O').nonzero()))
+	seen = {}
+	while coords not in seen:
+		seen[coords] = len(seen)
 		for _ in range(4):
-			for x, y in zip(*(grid == 'O').nonzero()):
-				a = y - 1
-				while a >= 0 and grid[x, a] == '.':
-					a -= 1
-				if grid[x, a + 1] == '.':
-					grid[x, a + 1], grid[x, y] = grid[x, y], grid[x, a + 1]
+			tilt(grid)
 			grid = np.rot90(grid)
-		mem[gridstr] = '\n'.join(
-				''.join(grid[:, y]) for y in range(grid.shape[1]))
-		gridstr = mem[gridstr]
-	grid = np.array([list(line) for line in gridstr.splitlines()]).T
-	return sum((grid.shape[1] - y) * sum(a == 'O' for a in grid[:, y])
-			for y in range(grid.shape[1]))
+		coords = tuple(zip(*(grid == 'O').nonzero()))
+	start = seen[coords]
+	length = len(seen) - start
+	idx = start + (1000000000 - start) % length
+	coords = [c for c, n in seen.items() if n == idx].pop()
+	result2 = sum(maxy - y for _, y in coords)
+	return result1, result2
+
+
+def day15(s):
+	def h(x):
+		val = 0
+		for char in x:
+			val += ord(char)
+			val *= 17
+			val %= 256
+		return val
+
+	result1 = sum(h(x) for x in s.split(','))
+	result2 = 0
+	boxes = [[] for _ in range(256)]
+	for step in s.split(','):
+		if '=' in step:
+			a, b = step.split('=')
+			chain = boxes[h(a)]
+			for n, x in enumerate(chain):
+				if x[0] == a:
+					chain[n] = (a, b)
+					break
+			else:
+				chain.append((a, b))
+		elif '-' in step:
+			a = step.strip('-')
+			chain = boxes[h(a)]
+			chain[:] = [x for x in chain if x[0] != a]
+		else:
+			raise ValueError
+	result2 = sum(n * m * int(b)
+			for n, chain in enumerate(boxes, 1)
+			for m, (_, b) in enumerate(chain, 1)
+			)
+	return result1, result2
 
 
 if __name__ == '__main__':
