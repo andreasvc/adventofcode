@@ -7,7 +7,6 @@ import itertools
 # from operator import lt, gt, eq
 from functools import cache  # , reduce
 # from collections import Counter, defaultdict
-# from functools import cmp_to_key
 # from heapq import heappush, heappop
 from colorama import Fore, Style
 import numpy as np
@@ -18,20 +17,18 @@ from common import main
 
 
 def day1(s):
-	digits = ['one', 'two', 'three', 'four', 'five', 'six', 'seven',
-			'eight', 'nine']
+	digits = 'one two three four five six seven eight nine'.split()
 	x = re.compile(r'\d|' + '|'.join(digits))
 	xx = re.compile(r'\d|' + '|'.join(digits)[::-1])
-	conv = dict(zip(digits, [str(a) for a in range(1, 10)]))
-	for a in range(10):
-		conv[str(a)] = str(a)
+	conv = dict(zip(digits, range(1, 10)))
+	conv.update((str(a), a) for a in range(10))
 	result1 = result2 = 0
 	for line in s.splitlines():
 		digits = re.findall(r'\d', line)
 		result1 += int(digits[0] + digits[-1])
 		digit1 = x.search(line).group()
 		digit2 = xx.search(line[::-1]).group()[::-1]
-		result2 += int(conv[digit1] + conv[digit2])
+		result2 += 10 * conv[digit1] + conv[digit2]
 	return result1, result2
 
 
@@ -98,16 +95,20 @@ def day4(s):
 	return result1, sum(cnt)
 
 
-def _day5(n, maps):
-	for m in maps:
-		for a, b, c in m:
-			if b <= n < b + c:
-				n = a + n - b
-				break
-	return n
+def day5(s):
+	def _day5(n, maps):
+		for m in maps:
+			for a, b, c in m:
+				if b <= n < b + c:
+					n = a + n - b
+					break
+		return n
 
-
-def _day5b(seeds, maps):
+	maps = s.split('\n\n')
+	seeds = [int(a) for a in maps[0].split(':')[1].split()]
+	maps = [[[int(a) for a in line.split()]
+				for line in m.splitlines()[1:]]
+			for m in maps[1:]]
 	result2 = _day5(seeds[0], maps)
 	for a, b in zip(seeds[::2], seeds[1::2]):
 		for n in range(a, a + b, max(1, b // 100)):
@@ -122,17 +123,6 @@ def _day5b(seeds, maps):
 				result2, mn = x, mn - step
 			else:
 				break
-	return result2
-
-
-def day5(s):
-	maps = s.split('\n\n')
-	seeds = [int(a) for a in maps[0].split(':')[1].split()]
-	maps = [[[int(a) for a in line.split()]
-				for line in m.splitlines()[1:]]
-			for m in maps[1:]]
-	maps = [np.array(m, dtype=int) for m in maps]
-	result2 = _day5b(np.array(seeds, dtype=int), maps)
 	return min(_day5(s, maps) for s in seeds), result2
 
 
@@ -390,24 +380,21 @@ def day15(s):
 	def h(x):
 		val = 0
 		for char in x:
-			val += ord(char)
-			val *= 17
-			val %= 256
+			val = (val + ord(char)) * 17 % 256
 		return val
 
 	result1 = sum(h(x) for x in s.split(','))
-	result2 = 0
 	boxes = [[] for _ in range(256)]
 	for step in s.split(','):
 		if '=' in step:
 			a, b = step.split('=')
 			chain = boxes[h(a)]
-			for n, x in enumerate(chain):
+			for x in chain:
 				if x[0] == a:
-					chain[n] = (a, b)
+					x[1] = b
 					break
 			else:
-				chain.append((a, b))
+				chain.append([a, b])
 		elif '-' in step:
 			a = step.strip('-')
 			chain = boxes[h(a)]
@@ -416,9 +403,56 @@ def day15(s):
 			raise ValueError
 	result2 = sum(n * m * int(b)
 			for n, chain in enumerate(boxes, 1)
-			for m, (_, b) in enumerate(chain, 1)
-			)
+			for m, (_, b) in enumerate(chain, 1))
 	return result1, result2
+
+
+def day16(s):
+	def f(pos, dir):
+		seen = set()
+		beams = [(pos, dir)]
+		while beams:
+			newbeams = []
+			for (y, x), (dy, dx) in beams:
+				y += dy
+				x += dx
+				pos, dir = (y, x), (dy, dx)
+				if 0 <= y < len(grid) and 0 <= x < len(grid[0]):
+					if (pos, dir) in seen:
+						continue
+					seen.add((pos, dir))
+					if grid[y][x] == '.':
+						newbeams.append((pos, dir))
+					elif grid[y][x] == '/':
+						newbeams.append((pos, refl1[dir]))
+					elif grid[y][x] == '\\':
+						newbeams.append((pos, refl2[dir]))
+					elif grid[y][x] == '|':
+						if dx == 0:
+							newbeams.append((pos, dir))
+						else:
+							newbeams.extend([(pos, up), (pos, down)])
+					elif grid[y][x] == '-':
+						if dy == 0:
+							newbeams.append((pos, dir))
+						else:
+							newbeams.extend([(pos, left), (pos, right)])
+			beams = newbeams
+		return len({pos for pos, _ in seen})
+
+	def sides():
+		for y, _ in enumerate(grid):
+			yield f((y, -1), right)
+			yield f((y, len(grid[0])), left)
+		for x, _ in enumerate(grid[0]):
+			yield f((-1, x), down)
+			yield f((len(grid), x), up)
+
+	grid = s.splitlines()
+	down, right, up, left = [(1, 0), (0, 1), (-1, 0), (0, -1)]
+	refl1 = {right: up, up: right, left: down, down: left}  # /
+	refl2 = {right: down, down: right, left: up, up: left}  # \
+	return f((0, -1), (0, 1)), max(sides())
 
 
 if __name__ == '__main__':
