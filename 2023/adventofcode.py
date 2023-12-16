@@ -412,32 +412,29 @@ def day16(s):
 		seen = set()
 		beams = [(pos, dir)]
 		while beams:
-			newbeams = []
-			for (y, x), (dy, dx) in beams:
-				y += dy
-				x += dx
-				pos, dir = (y, x), (dy, dx)
-				if 0 <= y < len(grid) and 0 <= x < len(grid[0]):
-					if (pos, dir) in seen:
-						continue
-					seen.add((pos, dir))
-					if grid[y][x] == '.':
-						newbeams.append((pos, dir))
-					elif grid[y][x] == '/':
-						newbeams.append((pos, refl1[dir]))
-					elif grid[y][x] == '\\':
-						newbeams.append((pos, refl2[dir]))
-					elif grid[y][x] == '|':
-						if dx == 0:
-							newbeams.append((pos, dir))
-						else:
-							newbeams.extend([(pos, up), (pos, down)])
-					elif grid[y][x] == '-':
-						if dy == 0:
-							newbeams.append((pos, dir))
-						else:
-							newbeams.extend([(pos, left), (pos, right)])
-			beams = newbeams
+			(y, x), (dy, dx) = beams.pop()
+			y += dy
+			x += dx
+			pos, dir = (y, x), (dy, dx)
+			if (0 <= y < len(grid) and 0 <= x < len(grid[0])
+					and (pos, dir) not in seen):
+				seen.add((pos, dir))
+				if grid[y][x] == '.':
+					beams.append((pos, dir))
+				elif grid[y][x] == '/':
+					beams.append((pos, refl1[dir]))
+				elif grid[y][x] == '\\':
+					beams.append((pos, refl2[dir]))
+				elif grid[y][x] == '|':
+					if dx == 0:
+						beams.append((pos, dir))
+					else:
+						beams.extend([(pos, up), (pos, down)])
+				elif grid[y][x] == '-':
+					if dy == 0:
+						beams.append((pos, dir))
+					else:
+						beams.extend([(pos, left), (pos, right)])
 		return len({pos for pos, _ in seen})
 
 	def sides():
