@@ -456,33 +456,34 @@ def day17(s):
 	def f(minsteps, maxsteps):
 		start = 0, 0
 		end = len(grid) - 1, len(grid[0]) - 1
-		agenda = [(end[0] + end[1], 0) + start + (1, 0, 0),
-				(end[0] + end[1], 0) + start + (0, 1, 0)]
+		agenda = [(end[0] + end[1], 0) + start + (1, 0),
+				(end[0] + end[1], 0) + start + (0, 1)]
+		ymax, xmax = len(grid), len(grid[0])
 		seen = {}
 		while agenda:
-			_est, cost, y, x, dy, dx, steps = heappop(agenda)
-			if (y, x) == end and steps >= minsteps:
+			_est, cost, y, x, dy, dx = heappop(agenda)
+			if (y, x) == end:
 				return cost
 			for ddy, ddx in validdirs[dy, dx]:
-				ny, nx = y + ddy, x + ddx
-				if (0 <= ny < len(grid) and 0 <= nx < len(grid[0])
-						and (steps >= minsteps or (dy == ddy and dx == ddx))
-						and (steps < maxsteps or dy != ddy or dx != ddx)):
-					ncost = cost + grid[ny][nx]
-					nsteps = (steps + 1) if (dy == ddy and dx == ddx) else 1
-					estimate = ncost + abs(end[0] - ny) + abs(end[1] - nx)
-					if estimate < seen.get((ny, nx, ddy, ddx, nsteps), 99999999):
-						heappush(agenda, (estimate, ncost, ny, nx, ddy, ddx, nsteps))
-						seen[ny, nx, ddy, ddx, nsteps] = estimate
+				ncost = cost
+				for n in range(1, maxsteps + 1):
+					ny, nx = y + ddy * n, x + ddx * n
+					if 0 <= ny < ymax and 0 <= nx < xmax :
+						ncost += grid[ny][nx]
+						est = ncost + abs(end[0] - ny) + abs(end[1] - nx)
+						if (n >= minsteps and est < seen.get(
+								(ny, nx, ddy, ddx), 99999999)):
+							heappush(agenda, (est, ncost, ny, nx, ddy, ddx))
+							seen[ny, nx, ddy, ddx, ] = est
 
 	grid = [[int(a) for a in line] for line in s.splitlines()]
 	down, right, up, left = [(1, 0), (0, 1), (-1, 0), (0, -1)]
 	validdirs = {
-			down: (left, down, right),
-			left: (up, left, down),
-			up: (left, up, right),
-			right: (up, right, down)}
-	return f(0, 3), f(4, 10)
+			down: (left, right),
+			left: (up, down),
+			up: (left, right),
+			right: (up, down)}
+	return f(1, 3), f(4, 10)
 
 
 
