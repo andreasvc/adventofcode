@@ -456,15 +456,18 @@ def day17(s):
 	def f(minsteps, maxsteps):
 		start = 0, 0
 		end = len(grid) - 1, len(grid[0]) - 1
+		ymax, xmax = len(grid), len(grid[0])
 		agenda = [(end[0] + end[1], 0) + start + (1, 0),
 				(end[0] + end[1], 0) + start + (0, 1)]
-		ymax, xmax = len(grid), len(grid[0])
-		seen = {}
+		seen = {start + (1, 0): end[0] + end[1],
+				start + (0, 1): end[0] + end[1]}
 		while agenda:
-			_est, cost, y, x, dy, dx = heappop(agenda)
+			est, cost, y, x, dy, dx = heappop(agenda)
 			if (y, x) == end:
 				return cost
-			for ddy, ddx in validdirs[dy, dx]:
+			if seen[y, x, dy, dx] < est:
+				continue
+			for ddy, ddx in [(-dx, -dy), (dx, dy)]:
 				ncost = cost
 				for n in range(1, maxsteps + 1):
 					ny, nx = y + ddy * n, x + ddx * n
@@ -474,17 +477,38 @@ def day17(s):
 						if (n >= minsteps and est < seen.get(
 								(ny, nx, ddy, ddx), 99999999)):
 							heappush(agenda, (est, ncost, ny, nx, ddy, ddx))
-							seen[ny, nx, ddy, ddx, ] = est
+							seen[ny, nx, ddy, ddx] = est
 
 	grid = [[int(a) for a in line] for line in s.splitlines()]
-	down, right, up, left = [(1, 0), (0, 1), (-1, 0), (0, -1)]
-	validdirs = {
-			down: (left, right),
-			left: (up, down),
-			up: (left, right),
-			right: (up, down)}
 	return f(1, 3), f(4, 10)
 
+
+def day18(s):
+	def getpoints(usecolor):
+		y = x = boundary = 0
+		points = [(y, x)]
+		for line in s.splitlines():
+			dir, num, color = line.split()
+			if usecolor:
+				num = int(color[2:7], base=16)
+				dy, dx = dirs['RDLU'[int(color[7])]]
+			else:
+				num = int(num)
+				dy, dx = dirs[dir]
+			y, x = y + dy * num, x + dx * num
+			points.append((y, x))
+			boundary += num
+		return points, boundary
+
+	def getarea(points, boundary):
+		area = sum((x1 * y2) - (x2 * y1)
+				for (y1, x1), (y2, x2) in zip(points, points[1:] + points[:1]))
+		return area // 2 + boundary // 2 + 1
+
+	dirs = {'L': (0, -1), 'R': (0, 1), 'U': (-1, 0), 'D': (1, 0)}
+	result1 = getarea(*getpoints(False))
+	result2 = getarea(*getpoints(True))
+	return result1, result2
 
 
 if __name__ == '__main__':
