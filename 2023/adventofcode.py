@@ -512,6 +512,36 @@ def day18(s):
 
 
 def day19(s):
+	def getranges(rng, todo):
+		rule = todo[0]
+		if rule == 'R':
+			return []
+		elif rule == 'A':
+			return [rng]
+		elif rule in rules:
+			return getranges(rng, rules[rule])
+		elif '<' in rule:
+			var, rest = rule.split('<')
+			val, wf = rest.split(':')
+			return getranges(
+					{a: (b, min(int(val), c)) if a == var else (b, c)
+						for a, (b, c) in rng.items()},
+					rules.get(wf, [wf])) + getranges(
+					{a: (max(int(val), b), c) if a == var else (b, c)
+						for a, (b, c) in rng.items()},
+					todo[1:])
+		elif '>' in rule:
+			var, rest = rule.split('>')
+			val, wf = rest.split(':')
+			return getranges(
+					{a: (max(int(val) + 1, b), c) if a == var else (b, c)
+						for a, (b, c) in rng.items()},
+					rules.get(wf, [wf])) + getranges(
+					{a: (b, min(int(val) + 1, c)) if a == var else (b, c)
+						for a, (b, c) in rng.items()},
+					todo[1:])
+		raise ValueError
+
 	rules, parts = s.split('\n\n')
 	rules = {name: rest.split(',') for name, rest in
 			(line.rstrip('}').split('{', 1) for line in rules.splitlines())}
@@ -540,7 +570,10 @@ def day19(s):
 					wf = rule
 			if wf == 'A':
 				result1 += sum(part.values())
-	return result1
+	start = {'x': (1, 4001), 'm': (1, 4001), 'a': (1, 4001), 's': (1, 4001)}
+	result2 = sum(prod(c - b for b, c in rng.values())
+			for rng in getranges(start, rules['in']))
+	return result1, result2
 
 
 if __name__ == '__main__':
