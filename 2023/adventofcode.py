@@ -511,5 +511,37 @@ def day18(s):
 	return result1, result2
 
 
+def day19(s):
+	rules, parts = s.split('\n\n')
+	rules = {name: rest.split(',') for name, rest in
+			(line.rstrip('}').split('{', 1) for line in rules.splitlines())}
+	parts = [{a: int(b) for a, b
+			in (a.split('=') for a in line.strip('{}').split(','))}
+			for line in parts.splitlines()]
+	result1 = 0
+	for part in parts:
+		wf = 'in'
+		while wf not in 'AR':
+			for rule in rules[wf]:
+				if '<' in rule:
+					var, rest = rule.split('<')
+					val, wf = rest.split(':')
+					if part[var] < int(val):
+						break
+				elif '>' in rule:
+					var, rest = rule.split('>')
+					val, wf = rest.split(':')
+					if part[var] > int(val):
+						break
+				elif rule == 'R':
+					wf = 'R'
+					break
+				elif rule == 'A' or rule in rules:
+					wf = rule
+			if wf == 'A':
+				result1 += sum(part.values())
+	return result1
+
+
 if __name__ == '__main__':
 	main(globals())
