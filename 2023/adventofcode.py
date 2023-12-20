@@ -586,7 +586,11 @@ def day20(s):
 	for mod in conj:
 		conj[mod] = dict.fromkeys(incoming[mod], 0)
 	cnt = [0, 0]
-	for _ in range(1000):
+	target = incoming[incoming['rx'][0]]
+	idx = {}  # first time each of target mods outputs 0
+	n = 0
+	while len(idx) < 4:
+		n += 1
 		queue = deque([(0, 'button')])
 		while queue:
 			pulse, mod = queue.pop()
@@ -601,11 +605,14 @@ def day20(s):
 				pulse = state[mod]
 			for a in config[mod]:
 				queue.appendleft((pulse, a))
-				cnt[pulse] += 1
+				if n <= 1000:
+					cnt[pulse] += 1
 				if a in conj:
 					conj[a][mod] = pulse
-	result1 = prod(cnt)
-	return result1
+			for a in target:
+				if n > 1 and not any(conj[a].values()) and a not in idx:
+					idx[a] = n
+	return prod(cnt), lcm(*idx.values())
 
 
 if __name__ == '__main__':
