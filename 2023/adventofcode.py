@@ -512,35 +512,28 @@ def day18(s):
 
 
 def day19(s):
-	def getranges(rng, todo):
+	def numparts(rng, todo):
 		rule = todo[0]
 		if rule == 'R':
-			return []
+			return 0
 		elif rule == 'A':
-			return [rng]
+			return prod(c - b for b, c in rng.values())
 		elif rule in rules:
-			return getranges(rng, rules[rule])
+			return numparts(rng, rules[rule])
 		elif '<' in rule:
 			var, rest = rule.split('<')
 			val, wf = rest.split(':')
-			return getranges(
-					{a: (b, min(int(val), c)) if a == var else (b, c)
-						for a, (b, c) in rng.items()},
-					rules.get(wf, [wf])) + getranges(
-					{a: (max(int(val), b), c) if a == var else (b, c)
-						for a, (b, c) in rng.items()},
-					todo[1:])
+			return numparts({a: (b, int(val)) if a == var else (b, c)
+						for a, (b, c) in rng.items()}, rules.get(wf, [wf])
+					) + numparts({a: (int(val), c) if a == var else (b, c)
+						for a, (b, c) in rng.items()}, todo[1:])
 		elif '>' in rule:
 			var, rest = rule.split('>')
 			val, wf = rest.split(':')
-			return getranges(
-					{a: (max(int(val) + 1, b), c) if a == var else (b, c)
-						for a, (b, c) in rng.items()},
-					rules.get(wf, [wf])) + getranges(
-					{a: (b, min(int(val) + 1, c)) if a == var else (b, c)
-						for a, (b, c) in rng.items()},
-					todo[1:])
-		raise ValueError
+			return numparts({a: (int(val) + 1, c) if a == var else (b, c)
+						for a, (b, c) in rng.items()}, rules.get(wf, [wf])
+					) + numparts({a: (b, int(val) + 1) if a == var else (b, c)
+						for a, (b, c) in rng.items()}, todo[1:])
 
 	rules, parts = s.split('\n\n')
 	rules = {name: rest.split(',') for name, rest in
@@ -553,6 +546,7 @@ def day19(s):
 		wf = 'in'
 		while wf not in 'AR':
 			for rule in rules[wf]:
+				wf = rule
 				if '<' in rule:
 					var, rest = rule.split('<')
 					val, wf = rest.split(':')
@@ -563,17 +557,55 @@ def day19(s):
 					val, wf = rest.split(':')
 					if part[var] > int(val):
 						break
-				elif rule == 'R':
-					wf = 'R'
+				elif rule in 'AR':
 					break
-				elif rule == 'A' or rule in rules:
-					wf = rule
 			if wf == 'A':
 				result1 += sum(part.values())
-	start = {'x': (1, 4001), 'm': (1, 4001), 'a': (1, 4001), 's': (1, 4001)}
-	result2 = sum(prod(c - b for b, c in rng.values())
-			for rng in getranges(start, rules['in']))
+	result2 = numparts(dict.fromkeys('xmas', (1, 4001)), rules['in'])
 	return result1, result2
+
+
+def day20(s):
+	from collections import deque
+	config = {'output': [], 'rx': []}
+	state = {'output': 0, 'rx': 0}
+	incoming = {}
+	conj = {}
+	flipflops = set()
+	for line in ['button -> broadcaster'] + s.splitlines():
+		mod, conn = line.split(' -> ')
+		mmod = mod.strip('%&')
+		state[mmod] = 0
+		if mod.startswith('%'):
+			flipflops.add(mmod)
+		elif mod.startswith('&'):
+			conj[mmod] = None
+		config[mmod] = conn.split(', ')
+		for a in conn.split(', '):
+			incoming.setdefault(a, []).append(mmod)
+	for mod in conj:
+		conj[mod] = dict.fromkeys(incoming[mod], 0)
+	cnt = [0, 0]
+	for _ in range(1000):
+		queue = deque([(0, 'button')])
+		while queue:
+			pulse, mod = queue.pop()
+			if mod in conj:
+				pulse = not all(conj[mod].values())
+			else:
+				if mod in flipflops:
+					if pulse:
+						continue
+					else:
+						state[mod] = not state[mod]
+				pulse = state[mod]
+			for a in config[mod]:
+				queue.appendleft((pulse, a))
+				cnt[pulse] += 1
+				if a in conj:
+					conj[a][mod] = pulse
+	result1 = prod(cnt)
+	return result1
 
 
 if __name__ == '__main__':
