@@ -59,8 +59,7 @@ def day3(s):
 			for x, char in enumerate(line)
 			if char != '.' and not char.isdigit()
 			for yy, xx in itertools.product(
-                        (y - 1, y, y + 1),
-                        (x - 1, x, x + 1))}
+				(y - 1, y, y + 1), (x - 1, x, x + 1))}
 	num = {(y, x): (int(match.group()), y, match.start())
 			for y, line in enumerate(grid)
 			for match in re.finditer(r'\d+', line)
@@ -71,8 +70,7 @@ def day3(s):
 			if char == '*':
 				nums = {num[yy, xx]
 						for yy, xx in itertools.product(
-							(y - 1, y, y + 1),
-							(x - 1, x, x + 1))
+							(y - 1, y, y + 1), (x - 1, x, x + 1))
 						if (yy, xx) in num}
 				if len(nums) == 2:
 					result2 += prod(n for n, _, _ in nums)
@@ -173,7 +171,7 @@ def day8(s):
 	lines = s.splitlines()
 	dirs = lines[0]
 	graph = {a: (b, c) for a, b, c
-			in [re.findall('\w\w\w', line) for line in lines[2:]]}
+			in [re.findall(r'\w\w\w', line) for line in lines[2:]]}
 	dirs = itertools.cycle(dirs)
 	node = 'AAA'
 	result1 = 0
@@ -471,7 +469,7 @@ def day17(s):
 				ncost = cost
 				for n in range(1, maxsteps + 1):
 					ny, nx = y + ddy * n, x + ddx * n
-					if 0 <= ny < ymax and 0 <= nx < xmax :
+					if 0 <= ny < ymax and 0 <= nx < xmax:
 						ncost += grid[ny][nx]
 						est = ncost + abs(end[0] - ny) + abs(end[1] - nx)
 						if (n >= minsteps and est < seen.get(
@@ -613,6 +611,34 @@ def day20(s):
 				if n > 1 and not any(conj[a].values()) and a not in idx:
 					idx[a] = n
 	return prod(cnt), lcm(*idx.values())
+
+
+def day21(s):
+	from numpy.polynomial import Polynomial
+	grid = s.splitlines()
+	ymax, xmax = len(grid), len(grid[0])
+	for n, line in enumerate(grid):
+		if 'S' in line:
+			sy, sx = n, line.index('S')
+			grid[n] = line.replace('S', '.')
+	queue = {(sy, sx)}
+	xs, ys = [], []
+	for n in range(1, 2 * ymax + 66):
+		newqueue = set()
+		for y, x in queue:
+			for dy, dx in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+				if grid[(y + dy) % ymax][(x + dx) % xmax] == '.':
+					newqueue.add((y + dy, x + dx))
+		queue = newqueue
+		if n == 64:
+			result1 = len(queue)
+		if n % ymax == 65:
+			xs.append(n)
+			ys.append(len(queue))
+	p = Polynomial.fit(xs, ys, deg=2)
+	p = Polynomial(p.coef.round().astype(int), domain=p.domain)
+	result2 = round(p(26501365))
+	return result1, result2
 
 
 if __name__ == '__main__':
