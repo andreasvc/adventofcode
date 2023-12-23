@@ -623,7 +623,7 @@ def day21(s):
 			grid[n] = line.replace('S', '.')
 	queue = {(sy, sx)}
 	ys = [0]
-	for _ in range(65 + 2 * ymax):
+	for _ in range(sy + 2 * ymax):
 		newqueue = set()
 		for y, x in queue:
 			for dy, dx in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
@@ -631,15 +631,16 @@ def day21(s):
 					newqueue.add((y + dy, x + dx))
 		queue = newqueue
 		ys.append(len(queue))
-	xs = [65, 65 + ymax, 65 + 2 * ymax]
-	p = lagrange(xs, [ys[x] for x in xs])
-	return ys[64], round(p(26501365))
+	xs = [sy, sy + ymax, sy + 2 * ymax]
+	p = lagrange(range(3), [ys[x] for x in xs])
+	return ys[64], round(p((26501365 - sy) // ymax))
 
 
 def day22(s):
 	def gravity(bricks):
 		grid = np.zeros((xmax + 1, ymax + 1, zmax + 1), dtype=int)
 		newbricks = []
+		fallen = 0
 		for n, (x1, y1, z1, x2, y2, z2) in enumerate(bricks, 1):
 			if z1 == 1:
 				grid[x1:x2 + 1, y1:y2 + 1, z1:z2 + 1] = n
@@ -652,7 +653,8 @@ def day22(s):
 					nz -= 1
 				grid[x1:x2 + 1, y1:y2 + 1, nz + 1:nz + zd + 1] = n
 				newbricks.append((x1, y1, nz + 1, x2, y2, nz + zd))
-		return newbricks, grid
+				fallen += nz + 1 != z1
+		return newbricks, grid, fallen
 
 	bricks = [[int(a) for a in re.findall(r'\d+', line)]
 			for line in s.splitlines()]
@@ -662,22 +664,54 @@ def day22(s):
 		ymax = max(y1, y2, ymax)
 		zmax = max(z1, z2, zmax)
 	bricks = sorted(bricks, key=lambda x: x[2])
-	newbricks, grid = gravity(bricks)
+	newbricks, grid, fallen = gravity(bricks)
 	supportedby = {0: set()}
 	for n, (x1, y1, z1, x2, y2, z2) in enumerate(newbricks, 1):
 		supportedby[n] = set(
 				grid[x1:x2 + 1, y1:y2 + 1, z1 - 1].ravel()) - {0}
 	removable = [n for n, (x1, y1, z1, x2, y2, z2) in enumerate(newbricks, 1)
-			if all(len(supportedby[a]) > 1 for a in
-				grid[x1:x2 + 1, y1:y2 + 1, z2 + 1].ravel()
-				if a != 0)]
+			if not any(len(supportedby[a]) == 1 for a in
+				grid[x1:x2 + 1, y1:y2 + 1, z2 + 1].ravel())]
 	result1 = len(removable)
 	result2 = 0
 	for n in set(range(1, len(newbricks) + 1)) - set(removable):
 		newbricks1 = [a for m, a in enumerate(newbricks, 1) if n != m]
-		newbricks2, _grid = gravity(newbricks1)
-		result2 += sum(a != b for a, b in zip(newbricks1, newbricks2))
+		newbricks2, _grid, fallen = gravity(newbricks1)
+		result2 += fallen
 	return result1, result2
+
+
+def day23(s):
+	def f():
+		start = 0, 1
+		end = len(grid) - 1, len(grid[0]) - 2
+		ymax, xmax = len(grid), len(grid[0])
+		agenda = [(set(), ) + start]
+		hikes = []
+		while agenda:
+			seen, y, x = agenda.pop()
+			if (y, x) == end:
+				hikes.append(seen)
+			for dy, dx in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+				ny, nx = y + dy, x + dx
+				if 0 <= ny < ymax and 0 <= nx < xmax:
+					if grid[ny][nx] == '.' and (ny, nx) not in seen:
+						agenda.append((seen | {(ny, nx)}, ny, nx))
+					elif grid[ny][nx] in '<>^v' and (ny, nx) not in seen:
+						ddy, ddx = {'<': (0, -1), '>': (0, 1),
+								'^': (-1, 0), 'v': (1, 0)}[grid[ny][nx]]
+						nny, nnx = ny + ddy, nx + ddx
+						if (nny, nnx) not in seen:
+							agenda.append((
+									seen | {(ny, nx), (nny, nnx)}, nny, nnx))
+		return max(hikes, key=len)
+
+	grid = s.splitlines()
+	path1 = f()
+	# for y, line in enumerate(grid):
+	# 	print(''.join('O' if (y, x) in path1 else c for x, c in enumerate(line)))
+	return len(path1)
+
 
 
 if __name__ == '__main__':
