@@ -755,6 +755,59 @@ def day23(s):
 	return len(path1), path2
 
 
+def day24(s):
+	# Source: https://stackoverflow.com/a/42727584
+	def get_intersect(a1, a2, b1, b2):
+		"""
+		Returns the point of intersection of the lines passing through a2,a1 and b2,b1.
+		a1: [x, y] a point on the first line
+		a2: [x, y] another point on the first line
+		b1: [x, y] a point on the second line
+		b2: [x, y] another point on the second line
+
+		"""
+		s = np.vstack([a1, a2, b1, b2])     # s for stacked
+		h = np.hstack((s, np.ones((4, 1)))) # h for homogeneous
+		l1 = np.cross(h[0], h[1])           # get first line
+		l2 = np.cross(h[2], h[3])           # get second line
+		x, y, z = np.cross(l1, l2)          # point of intersection
+		if z == 0:                          # lines are parallel
+			return None
+		return (x / z, y / z)
+
+	hail = np.array(
+			[[int(a) for a in re.findall(r'-?\d+', line)]
+			for line in s.splitlines()], dtype=int)
+	x, y, z, vx, vy, vz = range(6)
+	bounds = [7, 27] if hail.shape[0] == 5 else	[
+			200000000000000, 400000000000000]
+	result1 = 0
+	for n in range(hail.shape[0]):
+		for m in range(n + 1, hail.shape[0]):
+			result = get_intersect(
+					hail[n, [x, y]],
+					hail[n, [x, y]] + 10000 * hail[n, [vx, vy]],
+					hail[m, [x, y]],
+					hail[m, [x, y]] + 10000 * hail[m, [vx, vy]])
+			inbounds = (result is not None
+					and bounds[0] <= result[0] <= bounds[1]
+					and bounds[0] <= result[1] <= bounds[1])
+			futa = (result is not None
+					and (result[0] - hail[n, x]) / hail[n, vx] >= 0
+					# and (result[1] - hail[n, y]) / hail[n, vy] >= 0
+					)
+			futb = (result is not None
+					and (result[0] - hail[m, x]) / hail[m, vx] >= 0
+					# and (result[1] - hail[m, y]) / hail[m, vy] >= 0
+					)
+			result1 += inbounds and futa and futb
+			if hail.shape[0] == 5:
+				print()
+				print(n, s.splitlines()[n])
+				print(m, s.splitlines()[m])
+				print(inbounds and futa and futb, result, inbounds, futa, futb)
+	return result1
+
 
 if __name__ == '__main__':
 	main(globals())
