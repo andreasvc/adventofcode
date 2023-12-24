@@ -683,9 +683,6 @@ def day22(s):
 
 def day23(s):
 	def f():
-		start = 0, 1
-		end = len(grid) - 1, len(grid[0]) - 2
-		ymax, xmax = len(grid), len(grid[0])
 		agenda = [(set(), ) + start]
 		hikes = []
 		while agenda:
@@ -706,11 +703,56 @@ def day23(s):
 									seen | {(ny, nx), (nny, nnx)}, nny, nnx))
 		return max(hikes, key=len)
 
+	def getdist(pos1, pos2):
+		if pos1 == pos2:
+			return -1
+		agenda = [(0, ) + pos1]
+		seen = set(nodes) - {pos2}
+		while agenda:
+			steps, y, x = agenda.pop()
+			if (y, x) == pos2:
+				return steps
+			seen.add((y, x))
+			for dy, dx in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+				ny, nx = y + dy, x + dx
+				if (0 <= ny < ymax and 0 <= nx < xmax
+						and grid[ny][nx] == '.' and (ny, nx) not in seen):
+					agenda.append((steps + 1, ny, nx))
+		return -1
+
+	@cache
+	def g(start, end, unvisited):
+		dists = []
+		for pos, steps in graph[start]:
+			if unvisited & pos:
+				dist = 0 if pos == end else g(pos, end, unvisited ^ pos)
+				if dist >= 0:
+					dists.append(dist + steps)
+		return max(dists, default=-9999999999)
+
 	grid = s.splitlines()
+	ymax, xmax = len(grid), len(grid[0])
+	grid[0] = grid[0].replace('.', '#', 1)
+	start = 0, 1
+	end = len(grid) - 1, len(grid[0]) - 2
 	path1 = f()
-	# for y, line in enumerate(grid):
-	# 	print(''.join('O' if (y, x) in path1 else c for x, c in enumerate(line)))
-	return len(path1)
+
+	grid = re.sub(r'[<>v^]', '.', s).splitlines()
+	nodes = [start, end]
+	for y in range(1, len(grid) - 1):
+		for x in range(1, len(grid[0]) - 1):
+			if (grid[y][x] + grid[y - 1][x] + grid[y + 1][x]
+					+ grid[y][x - 1] + grid[y][x + 1]).count('.') > 3:
+				nodes.append((y, x))
+	bitnodes = {a: 1 << n for n, a in enumerate(nodes)}
+	graph = {bitnodes[pos1]: [a for a in
+				[(bitnodes[pos2], getdist(pos1, pos2)) for pos2 in nodes]
+				if a[1] != -1]
+			for pos1 in nodes}
+	start, end = bitnodes[start], bitnodes[end]
+	unvisited = (1 << len(nodes)) - 1
+	path2 = g(start, end, unvisited ^ start)
+	return len(path1), path2
 
 
 
