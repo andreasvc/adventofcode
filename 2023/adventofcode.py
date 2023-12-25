@@ -763,9 +763,7 @@ def day24(s):
 		a1: [x, y] a point on the first line
 		a2: [x, y] another point on the first line
 		b1: [x, y] a point on the second line
-		b2: [x, y] another point on the second line
-
-		"""
+		b2: [x, y] another point on the second line """
 		s = np.vstack([a1, a2, b1, b2])     # s for stacked
 		h = np.hstack((s, np.ones((4, 1)))) # h for homogeneous
 		l1 = np.cross(h[0], h[1])           # get first line
@@ -775,39 +773,102 @@ def day24(s):
 			return None
 		return (x / z, y / z)
 
+	def part1():
+		result1 = 0
+		for n in range(hail.shape[0]):
+			for m in range(n + 1, hail.shape[0]):
+				result = get_intersect(
+						hail[n, [x, y]],
+						hail[n, [x, y]] + 10000 * hail[n, [vx, vy]],
+						hail[m, [x, y]],
+						hail[m, [x, y]] + 10000 * hail[m, [vx, vy]])
+				inbounds = (result is not None
+						and bounds[0] <= result[0] <= bounds[1]
+						and bounds[0] <= result[1] <= bounds[1])
+				futa = (result is not None
+						and (result[0] - hail[n, x]) / hail[n, vx] >= 0)
+				futb = (result is not None
+						and (result[0] - hail[m, x]) / hail[m, vx] >= 0)
+				result1 += inbounds and futa and futb
+				if hail.shape[0] == 5:
+					print()
+					print(n, s.splitlines()[n])
+					print(m, s.splitlines()[m])
+					print(inbounds and futa and futb, result, inbounds, futa, futb)
+		return result1
+
+	# Source: https://stackoverflow.com/a/18543221
+	def isect_line_plane(p0, p1, p_co, p_no, epsilon=1e-6):
+		"""
+		p0, p1: Define the line.
+		p_co, p_no: define the plane:
+			p_co Is a point on the plane (plane coordinate).
+			p_no Is a normal vector defining the plane direction;
+				(does not need to be normalized).
+
+		Return a Vector or None (when the intersection can't be found).
+		"""
+		u = p1 - p0
+		dot = np.dot(p_no, u)
+
+		if abs(dot) > epsilon:
+			# The factor of the point between p0 -> p1 (0 - 1)
+			# if 'fac' is between (0 - 1) the point intersects with the segment.
+			# Otherwise:
+			#  < 0.0: behind p0.
+			#  > 1.0: infront of p1.
+			w = p0 - p_co
+			fac = -np.dot(p_no, w) / dot
+			return p0 + u * fac
+
+		# The segment is parallel to plane.
+		return None
+
 	hail = np.array(
 			[[int(a) for a in re.findall(r'-?\d+', line)]
 			for line in s.splitlines()], dtype=int)
 	x, y, z, vx, vy, vz = range(6)
 	bounds = [7, 27] if hail.shape[0] == 5 else	[
 			200000000000000, 400000000000000]
-	result1 = 0
-	for n in range(hail.shape[0]):
-		for m in range(n + 1, hail.shape[0]):
-			result = get_intersect(
-					hail[n, [x, y]],
-					hail[n, [x, y]] + 10000 * hail[n, [vx, vy]],
-					hail[m, [x, y]],
-					hail[m, [x, y]] + 10000 * hail[m, [vx, vy]])
-			inbounds = (result is not None
-					and bounds[0] <= result[0] <= bounds[1]
-					and bounds[0] <= result[1] <= bounds[1])
-			futa = (result is not None
-					and (result[0] - hail[n, x]) / hail[n, vx] >= 0
-					# and (result[1] - hail[n, y]) / hail[n, vy] >= 0
-					)
-			futb = (result is not None
-					and (result[0] - hail[m, x]) / hail[m, vx] >= 0
-					# and (result[1] - hail[m, y]) / hail[m, vy] >= 0
-					)
-			result1 += inbounds and futa and futb
-			if hail.shape[0] == 5:
-				print()
-				print(n, s.splitlines()[n])
-				print(m, s.splitlines()[m])
-				print(inbounds and futa and futb, result, inbounds, futa, futb)
-	return result1
+	result1 = part1()
 
+	# make all positions and velocities relative to stone 1
+	h0 = hail[0, :].copy()
+	hail -= h0
+	mult = 1000000000  # to avoid under/overflow
+
+	# plane defined by origin and line of stone 1
+	# https://stackoverflow.com/a/53698872
+	p0, p1, p2 = [hail[0, :3], hail[1, :3], hail[1, :3] + mult * hail[1, 3:]]
+	# convert to Python integers to avoid overflow w/numpy?
+	x0, y0, z0 = p0.tolist()
+	x1, y1, z1 = p1.tolist()
+	x2, y2, z2 = p2.tolist()
+	ux, uy, uz = [x1 - x0, y1 - y0, z1 - z0]
+	vx, vy, vz = [x2 - x0, y2 - y0, z2 - z0]
+	u_cross_v = [uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx]
+	point = np.array(p0)
+	normal = np.array(u_cross_v)
+
+	# intersect with line of stone 2
+	p2 = isect_line_plane(
+			hail[2, :3], hail[2, :3] + mult * hail[2, 3:],
+			point, normal)
+	# same for stone 3
+	p3 = isect_line_plane(
+			hail[3, :3], hail[3, :3] + mult * hail[3, 3:],
+			point, normal)
+	# now calculate time t2 for p2, and t3 for p3
+	t2 = round((p2[2] - hail[2, 2]) / (hail[2, 5]))
+	t3 = round((p3[2] - hail[3, 2]) / (hail[3, 5]))
+	# velocity for rock (should be integers, so round)
+	v = ((p2 - p3) / (t2 - t3)).round()
+	# calculate position of rock at t0
+	p = p2 - (t2 * v)
+	# get back to normal coordinates (not relative to stone 1)
+	p += h0[:3]
+	result2 = round(p.sum())
+	return result1, result2
 
 
 def day25(s):
