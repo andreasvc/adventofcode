@@ -809,5 +809,20 @@ def day24(s):
 	return result1
 
 
+
+def day25(s):
+	import networkx as nx
+	graph = nx.Graph()
+	for line in s.splitlines():
+		a, rest = line.split(':')
+		graph.add_node(a)
+		graph.add_nodes_from(rest.split())
+	for line in s.splitlines():
+		a, rest = line.split(':')
+		for b in rest.split():
+			graph.add_edge(a, b)
+	for a in nx.community.girvan_newman(graph):
+		return prod(len(b) for b in a)
+
 if __name__ == '__main__':
 	main(globals())
