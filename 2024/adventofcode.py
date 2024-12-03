@@ -1,4 +1,5 @@
 """Advent of Code 2024. http://adventofcode.com/2024 """
+import re
 import sys
 from collections import Counter
 sys.path.append('..')
@@ -25,6 +26,23 @@ def day2(s):
 		result1 += safe(data)
 		result2 += any(safe(data[:n] + data[n + 1:])
 				for n in range(len(data)))
+	return result1, result2
+
+
+def day3(s):
+	result1 = 0
+	for a, b in re.findall(r'mul\(([0-9]{1,3}),([0-9]{1,3})\)', s):
+		result1 += int(a) * int(b)
+	result2 = 0
+	enabled = True
+	instr = re.compile(r"(don't\(\)|do\(\)|mul\(([0-9]{1,3}),([0-9]{1,3})\))")
+	for op, a, b in instr.findall(s):
+		if op == "don't()":
+			enabled = False
+		elif op == 'do()':
+			enabled = True
+		elif op.startswith('mul') and enabled:
+			result2 += int(a) * int(b)
 	return result1, result2
 
 
