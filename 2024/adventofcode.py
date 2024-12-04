@@ -46,5 +46,27 @@ def day3(s):
 	return result1, result2
 
 
+def day4(s, q='XMAS', qq='MAS'):
+	result1 = result2 = 0
+	data = {(n, m): char
+			for n, line in enumerate(s.splitlines())
+				for m, char in enumerate(line)}
+	for n, m in data:
+		# horizontal, vertical, diagonals
+		result1 += ''.join(data.get((n + x, m), '')
+				for x in range(len(q))) in (q, q[::-1])
+		result1 += ''.join(data.get((n, m + x), '')
+				for x in range(len(q))) in (q, q[::-1])
+		result1 += ''.join(data.get((n + x, m + x), '')
+				for x in range(len(q))) in (q, q[::-1])
+		result1 += ''.join(data.get((n - x, m + x), '')
+				for x in range(len(q))) in (q, q[::-1])
+		result2 += ''.join(data.get((n + x, m + x), '')
+				for x in range(-1, 2)) in (qq, qq[::-1]) and ''.join(
+					data.get((n - x, m + x), '')
+				for x in range(-1, 2)) in (qq, qq[::-1])
+	return result1, result2
+
+
 if __name__ == '__main__':
 	main(globals())
