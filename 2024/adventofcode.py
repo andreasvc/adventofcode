@@ -68,5 +68,29 @@ def day4(s, q='XMAS', qq='MAS'):
 	return result1, result2
 
 
+def day5(s):
+	from functools import cmp_to_key
+	def cmp(a, b):
+		if a == b:
+			return 0
+		if (a, b) in order:
+			return -1
+		return 1
+
+	order, updates = s.split('\n\n')
+	order = {tuple(map(int, a.split('|'))) for a in order.splitlines()}
+	key = cmp_to_key(cmp)
+	result1 = result2 = 0
+	for line in updates.splitlines():
+		upd = list(map(int, line.split(',')))
+		if all(a not in upd or b not in upd or upd.index(a) < upd.index(b)
+				for a, b in order):
+			result1 += upd[len(upd) // 2]
+		else:
+			upd = sorted(upd, key=key)
+			result2 += upd[len(upd) // 2]
+	return result1, result2
+
+
 if __name__ == '__main__':
 	main(globals())
