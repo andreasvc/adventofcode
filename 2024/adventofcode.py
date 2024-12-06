@@ -92,5 +92,41 @@ def day5(s):
 	return result1, result2
 
 
+def day6(s):
+	grid = s.splitlines()
+	ymax, xmax = len(grid), len(grid[0])
+	x, y = max((line.find('^'), y) for y, line in enumerate(grid))
+	grid[y] = grid[y].replace('^', '.')
+	yd, xd = [-1, 0, 1, 0], [0, 1, 0, -1]
+
+	def explore(y, x, grid):
+		d = 0
+		path = {(y, x, d)}
+		while True:
+			if not 0 <= y + yd[d] < ymax or not 0 <= x + xd[d] < xmax:
+				return len({(y, x) for y, x, _ in path})
+			if grid[y + yd[d]][x + xd[d]] == '.':
+				y += yd[d]
+				x += xd[d]
+				if (y, x, d) in path:
+					return -1
+				path.add((y, x, d))
+			else:
+				d = (d + 1) % 4
+
+	def grids():
+		for y, line in enumerate(grid):
+			for x, char in enumerate(line):
+				if char == '.':
+					yield [line if yy != y
+							else [c if xx != x else 'O'
+								for xx, c in enumerate(line)]
+							for yy, line in enumerate(grid)]
+
+	result1 = explore(y, x, grid)
+	result2 = sum(explore(y, x, grid) == -1 for grid in grids())
+	return result1, result2
+
+
 if __name__ == '__main__':
 	main(globals())
