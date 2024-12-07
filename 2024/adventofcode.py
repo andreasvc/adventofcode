@@ -99,32 +99,59 @@ def day6(s):
 	grid[y] = grid[y].replace('^', '.')
 	yd, xd = [-1, 0, 1, 0], [0, 1, 0, -1]
 
-	def explore(y, x, grid):
-		d = 0
-		path = {(y, x, d)}
-		while True:
-			if not 0 <= y + yd[d] < ymax or not 0 <= x + xd[d] < xmax:
-				return len({(y, x) for y, x, _ in path})
+	def explore(y, x, d, grid, path=None):
+		path = path or {(y, x, d): None}
+		assert (y, x, d) in path
+		while 0 <= y + yd[d] < ymax and 0 <= x + xd[d] < xmax:
 			if grid[y + yd[d]][x + xd[d]] == '.':
 				y += yd[d]
 				x += xd[d]
 				if (y, x, d) in path:
 					return -1
-				path.add((y, x, d))
+				path[y, x, d] = None
 			else:
 				d = (d + 1) % 4
+		return path
 
-	def grids():
-		for y, line in enumerate(grid):
-			for x, char in enumerate(line):
-				if char == '.':
-					yield [line if yy != y
-							else [c if xx != x else 'O'
-								for xx, c in enumerate(line)]
-							for yy, line in enumerate(grid)]
+	def newgrid(y, x):
+		return [['#' if xx == x and yy == y else c
+				for xx, c in enumerate(line)]
+				for yy, line in enumerate(grid)]
 
-	result1 = explore(y, x, grid)
-	result2 = sum(explore(y, x, grid) == -1 for grid in grids())
+	path = list(explore(y, x, 0, grid))
+	result1 = len({(y, x) for y, x, _ in path})
+	result2 = len({(y2, x2)
+			for (n, (y1, x1, d1)), (y2, x2, _) in zip(enumerate(path), path[1:])
+			if explore(y, x, 0, newgrid(y2, x2)) == -1})
+			# if explore(y1, x1, d1, newgrid(y2, x2), dict.fromkeys(path[:n + 1])) == -1})
+	return result1, result2
+
+
+def day7(s):
+	def myeval(nums, ops, outcome):
+		result = nums[0]
+		for op, num in zip(ops, nums[1:]):
+			if op == '+':
+				result += num
+			elif op == '*':
+				result *= num
+			elif op == '||':
+				result = int(str(result) + str(num))
+			else:
+				raise ValueError
+		return result
+
+	from itertools import product
+	result1 = result2 = 0
+	for line in s.splitlines():
+		outcome, nums = line.split(':')
+		outcome, nums = int(outcome), [int(a) for a in nums.split()]
+		for ops in product(['+', '*', '||'], repeat=len(nums) - 1):
+			if myeval(nums, ops, outcome) == outcome:
+				if '||' not in ops:
+					result1 += outcome
+				result2 += outcome
+				break
 	return result1, result2
 
 
