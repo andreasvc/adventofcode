@@ -155,5 +155,29 @@ def day7(s):
 	return result1, result2
 
 
+def day8(s):
+	from itertools import combinations
+	grid = s.splitlines()
+	ymax, xmax = len(grid), len(grid[0])
+	ants = {}
+	for y, line in enumerate(grid):
+		for x, char in enumerate(line):
+			if char != '.':
+				if char not in ants:
+					ants[char] = []
+				ants[char].append((y, x))
+	result1, result2 = set(), set()
+	for char in ants:
+		for (y1, x1), (y2, x2) in combinations(ants[char], 2):
+			for n in range(-100, 100):
+				y3 = y1 - n * (y2 - y1)
+				x3 = x1 - n * (x2 - x1)
+				if 0 <= y3 < ymax and 0 <= x3 < xmax:
+					if n in (-2, 1):
+						result1.add((y3, x3))
+					result2.add((y3, x3))
+	return len(result1), len(result2)
+
+
 if __name__ == '__main__':
 	main(globals())
