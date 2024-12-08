@@ -101,16 +101,15 @@ def day6(s):
 
 	def explore(y, x, d, grid, path=None):
 		path = path or {(y, x, d): None}
-		assert (y, x, d) in path
 		while 0 <= y + yd[d] < ymax and 0 <= x + xd[d] < xmax:
 			if grid[y + yd[d]][x + xd[d]] == '.':
 				y += yd[d]
 				x += xd[d]
-				if (y, x, d) in path:
-					return -1
-				path[y, x, d] = None
 			else:
 				d = (d + 1) % 4
+			if (y, x, d) in path:
+				return -1
+			path[y, x, d] = None
 		return path
 
 	def newgrid(y, x):
@@ -122,8 +121,8 @@ def day6(s):
 	result1 = len({(y, x) for y, x, _ in path})
 	result2 = len({(y2, x2)
 			for (n, (y1, x1, d1)), (y2, x2, _) in zip(enumerate(path), path[1:])
-			if explore(y, x, 0, newgrid(y2, x2)) == -1})
-			# if explore(y1, x1, d1, newgrid(y2, x2), dict.fromkeys(path[:n + 1])) == -1})
+			if not any(y3 == y2 and x3 == x2 for y3, x3, _ in path[:n + 1])
+			and explore(y1, x1, d1, newgrid(y2, x2), dict.fromkeys(path[:n + 1])) == -1})
 	return result1, result2
 
 
@@ -136,12 +135,13 @@ def day7(s):
 			elif op == '*':
 				result *= num
 			elif op == '||':
-				result = int(str(result) + str(num))
+				result = result * 10 ** int(log10(num) + 1) + num
 			else:
 				raise ValueError
 		return result
 
 	from itertools import product
+	from math import log10
 	result1 = result2 = 0
 	for line in s.splitlines():
 		outcome, nums = line.split(':')
