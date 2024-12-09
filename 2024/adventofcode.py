@@ -127,7 +127,7 @@ def day6(s):
 
 
 def day7(s):
-	def myeval(nums, ops, outcome):
+	def myeval(nums, ops):
 		result = nums[0]
 		for op, num in zip(ops, nums[1:]):
 			if op == '+':
@@ -147,7 +147,7 @@ def day7(s):
 		outcome, nums = line.split(':')
 		outcome, nums = int(outcome), [int(a) for a in nums.split()]
 		for ops in product(['+', '*', '||'], repeat=len(nums) - 1):
-			if myeval(nums, ops, outcome) == outcome:
+			if myeval(nums, ops) == outcome:
 				if '||' not in ops:
 					result1 += outcome
 				result2 += outcome
@@ -177,6 +177,69 @@ def day8(s):
 						result1.add((y3, x3))
 					result2.add((y3, x3))
 	return len(result1), len(result2)
+
+
+def day9(s):
+	from array import array
+	data = []
+	for (n, a), b in zip(enumerate(s[::2]), s[1::2]):
+		data.extend([n for _ in range(int(a))])
+		data.extend([-1 for _ in range(int(b))])
+	data.extend([n + 1 for _ in range(int(s[-1]))])
+	disk = array('i', data)
+	start, end = 0, len(disk) - 1
+	while True:
+		for n in range(end, -1, -1):
+			if disk[n] != -1:
+				end = n - 1
+				break
+		for m, a in enumerate(disk[start:], start):
+			if a == -1 and m < n:
+				start = m + 1
+				disk[n], disk[m] = disk[m], disk[n]
+				break
+		else:
+			break
+	result1 = sum(n * int(a) for n, a in enumerate(disk) if a != -1)
+
+	disk = array('i', data)
+	freelist = []
+	n = 0
+	while n < len(disk):
+		if disk[n] == -1:
+			nn = n
+			while disk[nn] == -1:
+				nn += 1
+			freelist.append((n, nn))
+			n = nn
+		else:
+			n += 1
+	end = len(disk) - 1
+	while True:
+		for nn in range(end, -1, -1):
+			if disk[nn] != -1:
+				n = nn
+				while disk[n] == disk[nn]:
+					n -= 1
+				end = n
+				nn += 1
+				n += 1
+				blocks = nn - n
+				break
+		if n == 0:
+			break
+		for x, (m, mm) in enumerate(freelist):
+			if m > n:
+				break
+			elif mm - m >= blocks:
+				disk[n:nn], disk[m:m + blocks] = disk[m:m + blocks], disk[n:nn]
+				if mm - m == blocks:
+					freelist.pop(x)
+				else:
+					freelist[x] = (m + blocks, mm)
+				break
+	result2 = sum(n * int(a) for n, a in enumerate(disk) if a != -1)
+	return result1, result2
 
 
 if __name__ == '__main__':
