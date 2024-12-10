@@ -242,5 +242,27 @@ def day9(s):
 	return result1, result2
 
 
+def day10(s):
+	grid = {(x, y): -1 if a == '.' else int(a)
+			for y, line in enumerate(s.splitlines())
+			for x, a in enumerate(line)}
+	dirs = [(-1, 0), (0, 1), (1, 0), (0, -1)]
+	nines = {(x, y): set() for (x, y), a in grid.items() if a == 0}
+	paths = {(x, y): set() for (x, y), a in grid.items() if a == 0}
+	agenda = [(a, ) for a in nines]
+	while agenda:
+		path = agenda.pop()
+		if len(path) == 10:
+			nines[path[0]].add(path[-1])
+			paths[path[0]].add(path)
+			continue
+		x, y = path[-1]
+		for dx, dy in dirs:
+			if grid.get((x + dx, y + dy)) == grid.get((x, y), -1) + 1:
+				agenda.append(path + ((x + dx, y + dy), ))
+	result1 = sum(len(a) for a in nines.values())
+	result2 = sum(len(a) for a in paths.values())
+	return result1, result2
+
 if __name__ == '__main__':
 	main(globals())
