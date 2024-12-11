@@ -264,5 +264,28 @@ def day10(s):
 	result2 = sum(len(a) for a in paths.values())
 	return result1, result2
 
+
+def day11(s):
+	from math import log10
+	from collections import Counter
+	nums = Counter([int(a) for a in s.split()])
+	for n in range(75):
+		newnums = Counter()
+		for a, b in nums.items():
+			if a == 0:
+				newnums[1] += b
+				continue
+			digits = (int(log10(a)) + 1)
+			if (digits & 1) == 0:
+				newnums[a // 10 ** (digits // 2)] += b
+				newnums[a % 10 ** (digits // 2)] += b
+			else:
+				newnums[a * 2024] += b
+			nums = newnums
+			if n == 24:
+				result1 = sum(nums.values())
+	return result1, sum(nums.values())
+
+
 if __name__ == '__main__':
 	main(globals())
