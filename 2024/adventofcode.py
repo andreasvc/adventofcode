@@ -287,5 +287,53 @@ def day11(s):
 	return result1, sum(nums.values())
 
 
+def day12(s):
+	grid = {(x, y): char
+			for y, line in enumerate(s.splitlines())
+				for x, char in enumerate(line)}
+	groups = {pt: {pt} for pt in grid}
+	for x, y in groups:
+		for dx, dy in [(-1, 0), (0, -1), (1, 0), (0, 1)]:
+			if grid[x, y] == grid.get((x + dx, y + dy)):
+				groups[x, y].update(groups[x + dx, y + dy])
+				for pt in groups[x + dx, y + dy]:
+					groups[pt] = groups[x, y]
+	regions = list({tuple(b) for b in groups.values()})
+	areas = [len(a) for a in regions]
+	perimeters = [
+			(4 * len(region)) - sum(grid[x, y] == grid.get((x + dx, y + dy))
+				for x, y in region
+				for dx, dy in [(-1, 0), (0, -1), (1, 0), (0, 1)])
+			for region in regions]
+	sides = []
+	for region in regions:
+		regionsides = []
+		for x, y in region:
+			for dy in (-1, 1):
+				side = set()
+				for dx in (-1, 1):
+					xx = x
+					while (xx, y) in region and grid.get(
+							(xx, y)) != grid.get((xx, y + dy)):
+						side.add((xx, y + 0.5 * dy))
+						xx += dx
+				if side:
+					regionsides.append(tuple(sorted(side)))
+			for dx in (-1, 1):
+				side = set()
+				for dy in (-1, 1):
+					yy = y
+					while (x, yy) in region and grid.get(
+							(x, yy)) != grid.get((x + dx, yy)):
+						side.add((x + 0.5 * dx, yy))
+						yy += dy
+				if side:
+					regionsides.append(tuple(sorted(side)))
+		sides.append(len(set(regionsides)))
+	result1 = sum(a * b for a, b in zip(areas, perimeters))
+	result2 = sum(a * b for a, b in zip(areas, sides))
+	return result1, result2
+
+
 if __name__ == '__main__':
 	main(globals())
