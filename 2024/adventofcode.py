@@ -2,6 +2,7 @@
 import re
 import sys
 from collections import Counter
+import numpy as np
 sys.path.append('..')
 from common import main
 
@@ -288,17 +289,16 @@ def day11(s):
 
 
 def day12(s):
+	from scipy.cluster.hierarchy import DisjointSet
 	grid = {(x, y): char
 			for y, line in enumerate(s.splitlines())
 				for x, char in enumerate(line)}
-	groups = {pt: {pt} for pt in grid}
-	for x, y in groups:
+	groups = DisjointSet(grid)
+	for x, y in grid:
 		for dx, dy in [(-1, 0), (0, -1), (1, 0), (0, 1)]:
 			if grid[x, y] == grid.get((x + dx, y + dy)):
-				groups[x, y].update(groups[x + dx, y + dy])
-				for pt in groups[x + dx, y + dy]:
-					groups[pt] = groups[x, y]
-	regions = list({tuple(b) for b in groups.values()})
+				groups.merge((x, y), (x + dx, y + dy))
+	regions = groups.subsets()
 	areas = [len(a) for a in regions]
 	perimeters = [
 			(4 * len(region)) - sum(grid[x, y] == grid.get((x + dx, y + dy))
@@ -333,6 +333,38 @@ def day12(s):
 	result1 = sum(a * b for a, b in zip(areas, perimeters))
 	result2 = sum(a * b for a, b in zip(areas, sides))
 	return result1, result2
+
+
+def day13(s):
+	from numpy.linalg import det
+	result1 = result2 = 0
+	for machine in s.split('\n\n'):
+		nums = re.findall(r'\d+', machine)
+		ax, ay, bx, by, gx, gy = [int(a) for a in nums]
+		coins, n, m = min(((3 * n + m, n, m)
+				for n in range(100)
+				for m in range(100)
+			if abs(gx - (n * ax + m * bx))
+				+ abs(gy - (n * ay + m * by)) == 0),
+				default=(0, 0, 0))
+		result1 += coins
+
+		gx += 10000000000000
+		gy += 10000000000000
+		a = np.array([[ax, ay], [bx, by]], dtype=int).T
+		b = np.array([gx, gy], dtype=int)
+		a1 = a.copy()
+		a2 = a.copy()
+		a1[:, 0] = b
+		a2[:, 1] = b
+		deta = det(a)
+		n = int(round(det(a1) / deta))
+		m = int(round(det(a2) / deta))
+		if (abs(gx - (n * ax + m * bx))
+				+ abs(gy - (n * ay + m * by)) == 0):
+			result2 += 3 * n + m
+	return result1, result2
+
 
 
 if __name__ == '__main__':
