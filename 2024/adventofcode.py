@@ -337,32 +337,27 @@ def day12(s):
 
 def day13(s):
 	from numpy.linalg import det
+	def solve(ax, ay, bx, by, gx, gy):
+		a = np.array([[ax, bx], [ay, by]], dtype=int)
+		b = np.array([gx, gy], dtype=int)
+		a1, a2 = a.copy(), a.copy()
+		a1[:, 0] = b
+		a2[:, 1] = b
+		deta = det(a)
+		n = round(det(a1) / deta)
+		m = round(det(a2) / deta)
+		if (b - a @ np.array([n, m], dtype=int) == 0).all():
+			return 3 * n + m
+		return 0
+
 	result1 = result2 = 0
 	for machine in s.split('\n\n'):
 		nums = re.findall(r'\d+', machine)
 		ax, ay, bx, by, gx, gy = [int(a) for a in nums]
-		coins, n, m = min(((3 * n + m, n, m)
-				for n in range(100)
-				for m in range(100)
-			if abs(gx - (n * ax + m * bx))
-				+ abs(gy - (n * ay + m * by)) == 0),
-				default=(0, 0, 0))
-		result1 += coins
-
+		result1 += solve(ax, ay, bx, by, gx, gy)
 		gx += 10000000000000
 		gy += 10000000000000
-		a = np.array([[ax, ay], [bx, by]], dtype=int).T
-		b = np.array([gx, gy], dtype=int)
-		a1 = a.copy()
-		a2 = a.copy()
-		a1[:, 0] = b
-		a2[:, 1] = b
-		deta = det(a)
-		n = int(round(det(a1) / deta))
-		m = int(round(det(a2) / deta))
-		if (abs(gx - (n * ax + m * bx))
-				+ abs(gy - (n * ay + m * by)) == 0):
-			result2 += 3 * n + m
+		result2 += solve(ax, ay, bx, by, gx, gy)
 	return result1, result2
 
 
