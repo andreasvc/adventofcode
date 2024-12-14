@@ -361,6 +361,43 @@ def day13(s):
 	return result1, result2
 
 
+def day14(s):
+	data = np.array([int(a) for a in re.findall(r'-?\d+', s)],
+			dtype=int).reshape((-1, 4))
+	pos = data[:, :2]
+	vel = data[:, 2:]
+	size = np.array([11, 7], dtype=int)
+	if (pos > size).any():
+		size = np.array([101, 103], dtype=int)
+	pos += 100 * vel
+	pos %= size
+	mid = size // 2
+	mid1 = size // 2 + size % 2
+	ul = (pos < mid).all(axis=1)
+	lr = (pos >= mid1).all(axis=1)
+	ur = (pos[:, 0] >= mid1[0]) & (pos[:, 1] < mid[1])
+	ll = (pos[:, 0] < mid[0]) & (pos[:, 1] >= mid1[1])
+	result1 = ul.sum() * ur.sum() * ll.sum() * lr.sum()
+
+	data = np.array([int(a) for a in re.findall(r'-?\d+', s)],
+			dtype=int).reshape((-1, 4))
+	pos = data[:, :2]
+	result2 = 0
+	for n in range(1, 100000):
+		pos += vel
+		pos %= size
+		if 2 * (pos[:, 1] < mid[1]).sum() < (pos[:, 1] >= mid1[1]).sum():
+			cnt = Counter([(x, y) for x, y in pos])
+			if any('1111111111111111111111111111111'
+					in ''.join(str(cnt[x, y] or '.') for x in range(size[0]))
+					for y in range(size[1])):
+				for y in range(size[1]):
+					print(''.join(str(cnt[x, y] or '.') for x in range(size[0])))
+				print(n, end='\n\n')
+				result2 = n
+				break
+	return result1, result2
+
 
 if __name__ == '__main__':
 	main(globals())
