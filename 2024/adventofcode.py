@@ -379,11 +379,8 @@ def day14(s):
 	ll = (pos[:, 0] < mid[0]) & (pos[:, 1] >= mid1[1])
 	result1 = ul.sum() * ur.sum() * ll.sum() * lr.sum()
 
-	data = np.array([int(a) for a in re.findall(r'-?\d+', s)],
-			dtype=int).reshape((-1, 4))
-	pos = data[:, :2]
 	result2 = 0
-	for n in range(1, 100000):
+	for n in range(101, 100000):
 		pos += vel
 		pos %= size
 		if 2 * (pos[:, 1] < mid[1]).sum() < (pos[:, 1] >= mid1[1]).sum():
@@ -393,10 +390,70 @@ def day14(s):
 					for y in range(size[1])):
 				for y in range(size[1]):
 					print(''.join(str(cnt[x, y] or '.') for x in range(size[0])))
-				print(n, end='\n\n')
 				result2 = n
 				break
 	return result1, result2
+
+
+def day15(s, verbose=False):
+	def canmove(grid, x, y, dx, dy):
+		if grid[x + dx, y + dy] == '#':
+			return False
+		elif grid[x + dx, y + dy] == '.':
+			return True
+		elif grid[x + dx, y + dy] == 'O':
+			return canmove(grid, x + dx, y + dy, dx, dy)
+		elif grid[x + dx, y + dy] in '[]':
+			if dx == 0:
+				if grid[x + dx, y + dy] in '[':
+					return canmove(grid, x, y + dy, dx, dy
+							) and canmove(grid, x + 1, y + dy, dx, dy)
+				else:
+					return canmove(grid, x, y + dy, dx, dy
+							) and canmove(grid, x - 1, y + dy, dx, dy)
+			else:
+				return canmove(grid, x + dx, y + dy, dx, dy)
+
+	def domove(grid, x, y, dx, dy):
+		if grid[x + dx, y + dy] == 'O':
+			domove(grid, x + dx, y + dy, dx, dy)
+		elif grid[x + dx, y + dy] in '[]':
+			if dx == 0:
+				if grid[x + dx, y + dy] in '[':
+					domove(grid, x, y + dy, dx, dy)
+					domove(grid, x + 1, y + dy, dx, dy)
+				else:
+					domove(grid, x, y + dy, dx, dy)
+					domove(grid, x - 1, y + dy, dx, dy)
+			else:
+				domove(grid, x + dx, y + dy, dx, dy)
+		grid[x + dx, y + dy], grid[x, y] = grid[x, y], grid[x + dx, y + dy]
+
+	def solve(grid):
+		ymax, xmax = len(grid.splitlines()), len(grid.splitlines()[0])
+		grid = {(x, y): a
+				for y, line in enumerate(grid.splitlines())
+				for x, a in enumerate(line)}
+		x, y = next(iter((x, y) for (x, y), c in grid.items() if c == '@'))
+		dxdy = {'^': (0, -1), 'v': (0, 1), '<': (-1, 0), '>': (1, 0)}
+		for move in movements:
+			dx, dy = dxdy[move]
+			if canmove(grid, x, y, dx, dy):
+				domove(grid, x, y, dx, dy)
+				x, y = x + dx, y + dy
+			if verbose:
+				print('\nMove:', move)
+				for yy in range(ymax):
+					print(''.join(grid.get((xx, yy),' ') for xx in range(xmax)))
+		return sum(x + 100 * y
+				for (x, y), char in grid.items()
+				if char in 'O[')
+
+	grid, movements = s.split('\n\n')
+	movements = movements.replace('\n', '')
+	grid1 = (grid.replace('#', '##').replace('O', '[]')
+				.replace('.', '..').replace('@', '@.'))
+	return solve(grid), solve(grid1)
 
 
 if __name__ == '__main__':
