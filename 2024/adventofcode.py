@@ -420,13 +420,10 @@ def day15(s, verbose=False):
 		elif grid[x + dx, y + dy] in '[]':
 			if dx == 0:
 				if grid[x + dx, y + dy] in '[':
-					domove(grid, x, y + dy, dx, dy)
 					domove(grid, x + 1, y + dy, dx, dy)
 				else:
-					domove(grid, x, y + dy, dx, dy)
 					domove(grid, x - 1, y + dy, dx, dy)
-			else:
-				domove(grid, x + dx, y + dy, dx, dy)
+			domove(grid, x + dx, y + dy, dx, dy)
 		grid[x + dx, y + dy], grid[x, y] = grid[x, y], grid[x + dx, y + dy]
 
 	def solve(grid):
@@ -454,6 +451,37 @@ def day15(s, verbose=False):
 	grid1 = (grid.replace('#', '##').replace('O', '[]')
 				.replace('.', '..').replace('@', '@.'))
 	return solve(grid), solve(grid1)
+
+
+def day16(s):
+	from heapq import heappop, heappush
+	grid = s.splitlines()
+	xmax, ymax = len(grid[0]), len(grid)
+	start = max((line.find('S'), y) for y, line in enumerate(grid))
+	end = max((line.find('E'), y) for y, line in enumerate(grid))
+	agenda = [(end[0] + end[1], 0) + start + (1, 0, (start, ))]
+	seen = {start + (1, 0): end[0] + end[1]}
+	bestcost = 99999999999
+	onbestpath = set()
+	while agenda:
+		est, cost, x, y, dx, dy, path = heappop(agenda)
+		if (x, y) == end:
+			if cost > bestcost:
+				return bestcost, len(onbestpath)
+			if cost < bestcost:
+				bestcost = cost
+			onbestpath.update(path)
+		if seen[x, y, dx, dy] < est:
+			continue
+		for ddx, ddy, dcost in [(dx, dy, 1), (dy, dx, 1001), (-dy, -dx, 1001)]:
+			ny, nx, ncost = y + ddy, x + ddx, cost + dcost
+			if 0 <= nx < xmax and 0 <= ny < ymax and grid[ny][nx] != '#':
+				est = ncost + abs(end[0] - nx) + abs(end[1] - ny)
+				if est <= seen.get((nx, ny, ddx, ddy), 99999999):
+					heappush(agenda, (est, ncost, nx, ny, ddx, ddy,
+							path + ((nx, ny), )))
+					seen[nx, ny, ddx, ddy] = est
+
 
 
 if __name__ == '__main__':
