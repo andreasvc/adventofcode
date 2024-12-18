@@ -483,7 +483,7 @@ def day16(s):
 
 
 def day17(s):
-	def run(A, B, C, prog, earlystop=False):
+	def run(A, B, C, prog):
 		out = []
 		ip = 0
 		while ip < len(prog):
@@ -510,8 +510,6 @@ def day17(s):
 				B ^= C
 			elif op == 5:
 				out.append(opval & 0b111)  # % 8)
-				if earlystop and prog[len(out) - 1] != out[-1]:
-					return out
 			elif op == 6:
 				B = A >> opval  # A // 2 ** opval
 			elif op == 7:
@@ -535,6 +533,41 @@ def day17(s):
 	result1 = ','.join(str(a) for a in run(A, B, C, prog))
 	result2 = solve(prog, 0, 0)
 	return result1, result2
+
+
+def day18(s):
+	from heapq import heappop, heappush
+	incoming = [tuple(int(b) for b in a.split(',')) for a in s.splitlines()]
+	xmax, ymax = 71, 71
+	corrupted, rest = set(incoming[:1024]), incoming[1024:]
+	if not rest:
+		xmax, ymax = 7, 7
+		corrupted, rest = set(incoming[:12]), incoming[12:]
+	start = 0, 0
+	end = xmax - 1, ymax - 1
+	dirs = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+
+	def find():
+		agenda = [(0, ) + start]
+		seen = {start: 0}
+		while agenda:
+			cost, x, y = heappop(agenda)
+			if (x, y) == end:
+				return cost
+			if seen[x, y] < cost:
+				continue
+			for dx, dy in dirs:
+				nx, ny, ncost = x + dx, y + dy, cost + 1
+				if 0 <= nx < xmax and 0 <= ny < ymax and (nx, ny) not in corrupted:
+					if ncost < seen.get((nx, ny), 99999999):
+						heappush(agenda, (ncost, nx, ny))
+						seen[nx, ny] = ncost
+
+	result1 = find()
+	for coord in rest:
+		corrupted.add(coord)
+		if find() is None:
+			return result1, coord
 
 
 if __name__ == '__main__':
