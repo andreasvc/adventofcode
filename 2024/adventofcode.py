@@ -548,26 +548,29 @@ def day18(s):
 	dirs = [(0, 1), (1, 0), (0, -1), (-1, 0)]
 
 	def find():
-		agenda = [(0, ) + start]
-		seen = {start: 0}
+		agenda = [(0, ) + start + ((start, ), )]
+		seen = {c: 0 for c in corrupted | {start}}
 		while agenda:
-			cost, x, y = heappop(agenda)
+			cost, x, y, path = heappop(agenda)
 			if (x, y) == end:
-				return cost
+				return cost, path
 			if seen[x, y] < cost:
 				continue
 			for dx, dy in dirs:
 				nx, ny, ncost = x + dx, y + dy, cost + 1
-				if 0 <= nx < xmax and 0 <= ny < ymax and (nx, ny) not in corrupted:
-					if ncost < seen.get((nx, ny), 99999999):
-						heappush(agenda, (ncost, nx, ny))
-						seen[nx, ny] = ncost
+				if (0 <= nx < xmax and 0 <= ny < ymax
+						and ncost < seen.get((nx, ny), 99999999)):
+					heappush(agenda, (ncost, nx, ny, path + ((nx, ny), )))
+					seen[nx, ny] = ncost
+		return None, ()
 
-	result1 = find()
+	result1, path = find()
 	for coord in rest:
 		corrupted.add(coord)
-		if find() is None:
-			return result1, coord
+		if coord in path:
+			cost, path = find()
+			if cost is None:
+				return result1, coord
 
 
 if __name__ == '__main__':
