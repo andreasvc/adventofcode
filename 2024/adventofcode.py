@@ -456,7 +456,6 @@ def day15(s, verbose=False):
 def day16(s):
 	from heapq import heappop, heappush
 	grid = s.splitlines()
-	xmax, ymax = len(grid[0]), len(grid)
 	start = max((line.find('S'), y) for y, line in enumerate(grid))
 	end = max((line.find('E'), y) for y, line in enumerate(grid))
 	agenda = [(end[0] + end[1], 0) + start + (1, 0, (start, ))]
@@ -475,13 +474,67 @@ def day16(s):
 			continue
 		for ddx, ddy, dcost in [(dx, dy, 1), (dy, dx, 1001), (-dy, -dx, 1001)]:
 			ny, nx, ncost = y + ddy, x + ddx, cost + dcost
-			if 0 <= nx < xmax and 0 <= ny < ymax and grid[ny][nx] != '#':
+			if grid[ny][nx] != '#':
 				est = ncost + abs(end[0] - nx) + abs(end[1] - ny)
 				if est <= seen.get((nx, ny, ddx, ddy), 99999999):
 					heappush(agenda, (est, ncost, nx, ny, ddx, ddy,
 							path + ((nx, ny), )))
 					seen[nx, ny, ddx, ddy] = est
 
+
+def day17(s):
+	def run(A, B, C, prog, earlystop=False):
+		out = []
+		ip = 0
+		while ip < len(prog):
+			op = prog[ip]
+			operand = prog[ip + 1]
+			opval = operand
+			if operand == 4:
+				opval = A
+			elif operand == 5:
+				opval = B
+			elif operand == 6:
+				opval = C
+			if op == 0:
+				A >>= opval  # A //= 2 ** opval
+			elif op == 1:
+				B ^= operand
+			elif op == 2:
+				B = opval & 0b111  # % 8
+			elif op == 3:
+				if A != 0:
+					ip = operand
+					continue
+			elif op == 4:
+				B ^= C
+			elif op == 5:
+				out.append(opval & 0b111)  # % 8)
+				if earlystop and prog[len(out) - 1] != out[-1]:
+					return out
+			elif op == 6:
+				B = A >> opval  # A // 2 ** opval
+			elif op == 7:
+				C = A >> opval  # A // 2 ** opval
+			ip += 2
+		return out
+
+	def solve(prog, n, result):
+		for m in range(0, 0b1000):
+			out = run(result | m, 0, 0, prog)
+			if n < len(out) and out[-(n + 1)] == prog[-(n + 1)]:
+				if n == len(prog) - 1:
+					return result | m
+				newresult = solve(prog, n + 1, (result | m) << 3)
+				if newresult is not None:
+					return newresult
+
+	regs, prog = s.split('\n\n')
+	prog = [int(a) for a in re.findall(r'\d+', prog)]
+	A, B, C = [int(a) for a in re.findall(r'\d+', regs)]
+	result1 = ','.join(str(a) for a in run(A, B, C, prog))
+	result2 = solve(prog, 0, 0)
+	return result1, result2
 
 
 if __name__ == '__main__':
