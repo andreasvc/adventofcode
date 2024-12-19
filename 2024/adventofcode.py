@@ -1,6 +1,7 @@
 """Advent of Code 2024. http://adventofcode.com/2024 """
 import re
 import sys
+from functools import cache
 from collections import Counter
 import numpy as np
 sys.path.append('..')
@@ -361,7 +362,7 @@ def day13(s):
 	return result1, result2
 
 
-def day14(s):
+def day14(s, verbose=False):
 	data = np.array([int(a) for a in re.findall(r'-?\d+', s)],
 			dtype=int).reshape((-1, 4))
 	pos = data[:, :2]
@@ -388,8 +389,9 @@ def day14(s):
 			if any('1111111111111111111111111111111'
 					in ''.join(str(cnt[x, y] or '.') for x in range(size[0]))
 					for y in range(size[1])):
-				for y in range(size[1]):
-					print(''.join(str(cnt[x, y] or '.') for x in range(size[0])))
+				if verbose:
+					for y in range(size[1]):
+						print(''.join(str(cnt[x, y] or '.') for x in range(size[0])))
 				result2 = n
 				break
 	return result1, result2
@@ -571,6 +573,24 @@ def day18(s):
 			cost, path = find()
 			if cost is None:
 				return result1, coord
+
+
+def day19(s):
+	@cache
+	def nummatch(design):
+		if design == '':
+			return 1
+		return sum(nummatch(design[len(pat):]) for pat in patterns
+				if design.startswith(pat))
+
+	import re2 as re
+	patterns, designs = s.split('\n\n')
+	patterns = patterns.split(', ')
+	designs = designs.splitlines()
+	patternre = re.compile('^(%s)+$' % '|'.join(patterns))
+	result1 = sum(patternre.match(design) is not None for design in designs)
+	result2 = sum(nummatch(design) for design in designs)
+	return result1, result2
 
 
 if __name__ == '__main__':
