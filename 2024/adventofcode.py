@@ -1,9 +1,14 @@
 """Advent of Code 2024. http://adventofcode.com/2024 """
 import re
 import sys
-from functools import cache
-from collections import Counter
+from heapq import heappop, heappush
+from functools import cache, cmp_to_key
+from math import log10
+from itertools import product, combinations
+from collections import Counter, deque
+from array import array
 import numpy as np
+from scipy.cluster.hierarchy import DisjointSet
 sys.path.append('..')
 from common import main
 
@@ -71,7 +76,6 @@ def day4(s, q='XMAS', qq='MAS'):
 
 
 def day5(s):
-	from functools import cmp_to_key
 	def cmp(a, b):
 		if a == b:
 			return 0
@@ -142,8 +146,6 @@ def day7(s):
 				raise ValueError
 		return result
 
-	from itertools import product
-	from math import log10
 	result1 = result2 = 0
 	for line in s.splitlines():
 		outcome, nums = line.split(':')
@@ -158,7 +160,6 @@ def day7(s):
 
 
 def day8(s):
-	from itertools import combinations
 	grid = s.splitlines()
 	ymax, xmax = len(grid), len(grid[0])
 	ants = {}
@@ -182,7 +183,6 @@ def day8(s):
 
 
 def day9(s):
-	from array import array
 	data = []
 	for (n, a), b in zip(enumerate(s[::2]), s[1::2]):
 		data.extend([n for _ in range(int(a))])
@@ -268,8 +268,6 @@ def day10(s):
 
 
 def day11(s):
-	from math import log10
-	from collections import Counter
 	nums = Counter([int(a) for a in s.split()])
 	for n in range(75):
 		newnums = Counter()
@@ -290,7 +288,6 @@ def day11(s):
 
 
 def day12(s):
-	from scipy.cluster.hierarchy import DisjointSet
 	grid = {(x, y): char
 			for y, line in enumerate(s.splitlines())
 				for x, char in enumerate(line)}
@@ -337,16 +334,15 @@ def day12(s):
 
 
 def day13(s):
-	from numpy.linalg import det
 	def solve(ax, ay, bx, by, gx, gy):
 		a = np.array([[ax, bx], [ay, by]], dtype=int)
 		b = np.array([gx, gy], dtype=int)
 		a1, a2 = a.copy(), a.copy()
 		a1[:, 0] = b
 		a2[:, 1] = b
-		deta = det(a)
-		n = round(det(a1) / deta)
-		m = round(det(a2) / deta)
+		deta = np.linalg.det(a)
+		n = round(np.linalg.det(a1) / deta)
+		m = round(np.linalg.det(a2) / deta)
 		if (b - a @ np.array([n, m], dtype=int) == 0).all():
 			return 3 * n + m
 		return 0
@@ -456,12 +452,12 @@ def day15(s, verbose=False):
 
 
 def day16(s):
-	from heapq import heappop, heappush
 	grid = s.splitlines()
 	start = max((line.find('S'), y) for y, line in enumerate(grid))
 	end = max((line.find('E'), y) for y, line in enumerate(grid))
-	agenda = [(end[0] + end[1], 0) + start + (1, 0, (start, ))]
-	seen = {start + (1, 0): end[0] + end[1]}
+	# agenda = [(end[0] + end[1], 0) + start + (1, 0, (start, ))]
+	agenda = [(0, 0) + start + (1, 0, (start, ))]
+	seen = {start + (1, 0): 0}  # end[0] + end[1]}
 	bestcost = 99999999999
 	onbestpath = set()
 	while agenda:
@@ -477,7 +473,7 @@ def day16(s):
 		for ddx, ddy, dcost in [(dx, dy, 1), (dy, dx, 1001), (-dy, -dx, 1001)]:
 			ny, nx, ncost = y + ddy, x + ddx, cost + dcost
 			if grid[ny][nx] != '#':
-				est = ncost + abs(end[0] - nx) + abs(end[1] - ny)
+				est = ncost  # + abs(end[0] - nx) + abs(end[1] - ny)
 				if est <= seen.get((nx, ny, ddx, ddy), 99999999):
 					heappush(agenda, (est, ncost, nx, ny, ddx, ddy,
 							path + ((nx, ny), )))
@@ -538,7 +534,6 @@ def day17(s):
 
 
 def day18(s):
-	from heapq import heappop, heappush
 	incoming = [tuple(int(b) for b in a.split(',')) for a in s.splitlines()]
 	xmax, ymax = 71, 71
 	corrupted, rest = set(incoming[:1024]), incoming[1024:]
@@ -592,6 +587,44 @@ def day19(s):
 	result2 = sum(nummatch(design) for design in designs)
 	return result1, result2
 
+
+def day20(s):
+	def find(start, end):
+		agenda = deque([(0, ) + start])
+		seen = {start: 0}
+		while agenda:
+			cost, x, y = agenda.popleft()
+			if (x, y) == end:
+				return seen
+			if seen[x, y] < cost:
+				continue
+			for dx, dy in dirs:
+				nx, ny, ncost = x + dx, y + dy, cost + 1
+				if 0 <= nx < xmax and 0 <= ny < ymax:
+					if grid[ny][nx] != '#':
+						if ncost < seen.get((nx, ny), 99999999):
+							agenda.append((ncost, nx, ny))
+							seen[nx, ny] = ncost
+
+	grid = s.splitlines()
+	xmax, ymax = len(grid[0]), len(grid)
+	start = max((line.find('S'), y) for y, line in enumerate(grid))
+	end = max((line.find('E'), y) for y, line in enumerate(grid))
+	dirs = [(-1, 0), (0, 1), (1, 0), (0, -1)]
+	dist = find(start, end)
+	basecost = dist[end]
+	result1 = result2 = 0
+	for x1, y1 in dist:
+		for x2 in range(x1 - 20, x1 + 21):
+			for y2 in range(y1 - 20, y1 + 21):
+				d = abs(x2 - x1) + abs(y2 - y1)
+				if 1 < d <= 20 and (x2, y2) in dist:
+					cost = dist[x1, y1] + d + (basecost - dist[x2, y2])
+					if basecost - cost >= 100:
+						if d == 2:
+							result1 += 1
+						result2 += 1
+	return result1, result2
 
 if __name__ == '__main__':
 	main(globals())
