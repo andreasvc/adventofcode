@@ -133,29 +133,28 @@ def day6(s):
 
 
 def day7(s):
-	def myeval(nums, ops):
-		result = nums[0]
-		for op, num in zip(ops, nums[1:]):
-			if op == '+':
-				result += num
-			elif op == '*':
-				result *= num
-			elif op == '||':
-				result = result * 10 ** int(log10(num) + 1) + num
-			else:
-				raise ValueError
-		return result
+	def myeval(nums, result, concat):
+		if len(nums) == 1:
+			return nums[0] == result
+		num = nums[-1]
+		if num < result and myeval(nums[:-1], result - num, concat):
+			return True
+		elif result % num == 0 and myeval(nums[:-1], result // num, concat):
+			return True
+		elif concat:
+			ndigits = 10 ** int(log10(num) + 1)
+			if result % ndigits == num and myeval(
+					nums[:-1], result // ndigits, concat):
+				return True
+		return False
+
 
 	result1 = result2 = 0
 	for line in s.splitlines():
 		outcome, nums = line.split(':')
 		outcome, nums = int(outcome), [int(a) for a in nums.split()]
-		for ops in product(['+', '*', '||'], repeat=len(nums) - 1):
-			if myeval(nums, ops) == outcome:
-				if '||' not in ops:
-					result1 += outcome
-				result2 += outcome
-				break
+		result1 += outcome * myeval(nums, outcome, False)
+		result2 += outcome * myeval(nums, outcome, True)
 	return result1, result2
 
 
@@ -788,28 +787,28 @@ def day24(s):
 			for x in (a, b)}
 	anded = {x for a, op, b, _, out in circuit if op == 'AND'
 			for x in (a, b)}
-	hasinp = {}
-	for rule in circuit:
-		if rule[0] not in hasinp:
-			hasinp[rule[0]] = []
-		if rule[2] not in hasinp:
-			hasinp[rule[2]] = []
-		hasinp[rule[0]].append(rule)
-		hasinp[rule[2]].append(rule)
-	for n in range(45):
-		agenda = [f'x{n:02d}']
-		toprint = set()
-		for _ in range(3):
-			newagenda = []
-			for a in agenda:
-				toprint.update(tuple(x) for x in hasinp.get(a, ()))
-				for rule in hasinp.get(a, ()):
-					newagenda.append(rule[-1])
-			agenda = newagenda
-		for rule in sorted(toprint, key=lambda x: (
-				x[1] == 'OR', x[1] == 'AND', x[0][0] not in 'xy')):
-			print(' '.join(rule))
-		print()
+	# hasinp = {}
+	# for rule in circuit:
+	# 	if rule[0] not in hasinp:
+	# 		hasinp[rule[0]] = []
+	# 	if rule[2] not in hasinp:
+	# 		hasinp[rule[2]] = []
+	# 	hasinp[rule[0]].append(rule)
+	# 	hasinp[rule[2]].append(rule)
+	# for n in range(45):
+	# 	agenda = [f'x{n:02d}']
+	# 	toprint = set()
+	# 	for _ in range(3):
+	# 		newagenda = []
+	# 		for a in agenda:
+	# 			toprint.update(tuple(x) for x in hasinp.get(a, ()))
+	# 			for rule in hasinp.get(a, ()):
+	# 				newagenda.append(rule[-1])
+	# 		agenda = newagenda
+	# 	for rule in sorted(toprint, key=lambda x: (
+	# 			x[1] == 'OR', x[1] == 'AND', x[0][0] not in 'xy')):
+	# 		print(' '.join(rule))
+	# 	print()
 	for a, op, b, _, out in circuit:
 		if out[0] == 'z' and op != 'XOR' and out != 'z45':
 			switched.add(out)
