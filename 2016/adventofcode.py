@@ -554,5 +554,21 @@ def day17(s):
 	return min(paths, key=len), max(map(len, paths))
 
 
+def day18(s):
+	result1 = result2 = 0
+	for n in range(400000):
+		if n < 40:
+			result1 += s.count('.')
+		result2 += s.count('.')
+		s = ''.join('^' if
+				(l == c == '^' and r == '.')
+				or (c == r == '^' and l == '.')
+				or (l == c == '.' and r == '^')
+				or (c == r == '.' and l == '^')
+				else '.'
+				for l, c, r in zip('.' + s, s, s[1:] + '.'))
+	return result1, result2
+
+
 if __name__ == '__main__':
 	main(globals())
