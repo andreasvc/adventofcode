@@ -6,6 +6,10 @@ import itertools
 # from functools import reduce
 from collections import Counter, defaultdict
 from heapq import heappush, heappop
+try:
+	from _md5 import md5  # https://stackoverflow.com/a/60263898/338811
+except ImportError:
+	from hashlib import md5
 # import numpy as np
 # from numba import njit
 sys.path.append('..')
@@ -118,10 +122,6 @@ def day4(s):
 
 
 def _day5(s):
-	try:
-		from _md5 import md5  # https://stackoverflow.com/a/60263898/338811
-	except ImportError:
-		from hashlib import md5
 	hasher = md5()
 	hasher.update(s.encode('ascii'))
 	m = 0
@@ -511,27 +511,47 @@ def day15(s):
 
 
 def day16(s):
-	def solve(goal):
-		data = s
+	def solve(data, goal):
 		while len(data) < goal:
 			b = data[::-1].replace('1', '2').replace('0', '1').replace('2', '0')
 			data += '0' + b
 		data = data[:goal]
-		checksum = ''
 		while True:
-			for a, b in zip(data[::2], data[1::2]):
-				if a == b:
-					checksum += '1'
-				else:
-					checksum += '0'
-			if (len(checksum) & 1) != 0:
-				break
-			print(checksum, len(checksum))
-			data = checksum
 			checksum = ''
-		return checksum
+			for a, b in zip(data[::2], data[1::2]):
+				checksum += '01'[a == b]
+			if len(checksum) & 1 != 0:
+				return checksum
+			data = checksum
 
-	return solve(272), solve(35651584)
+	return solve(s, 272), solve(s, 35651584)
+
+
+def day17(s):
+	agenda = [(0, 0, '')]
+	hasher = md5(s.encode('ascii'))
+	paths = []
+	while agenda:
+		x, y, path = agenda.pop(0)
+		if x == y == 3:
+			paths.append(path)
+			continue
+		newhash = hasher.copy()
+		newhash.update(path.encode('ascii'))
+		for a, b in zip(newhash.hexdigest(), 'UDLR'):
+			nx = x
+			ny = y
+			if b == 'U':
+				ny -= 1
+			elif b == 'D':
+				ny += 1
+			elif b == 'L':
+				nx -= 1
+			elif b == 'R':
+				nx += 1
+			if a in 'bcdef' and 0 <= nx < 4 and 0 <= ny < 4:
+				agenda.append((nx, ny, path + b))
+	return min(paths, key=len), max(map(len, paths))
 
 
 if __name__ == '__main__':
