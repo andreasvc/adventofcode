@@ -510,5 +510,29 @@ def day15(s):
 	return solve(discs), solve(discs + [[7, 11, 0, 0]])
 
 
+def day16(s):
+	def solve(goal):
+		data = s
+		while len(data) < goal:
+			b = data[::-1].replace('1', '2').replace('0', '1').replace('2', '0')
+			data += '0' + b
+		data = data[:goal]
+		checksum = ''
+		while True:
+			for a, b in zip(data[::2], data[1::2]):
+				if a == b:
+					checksum += '1'
+				else:
+					checksum += '0'
+			if (len(checksum) & 1) != 0:
+				break
+			print(checksum, len(checksum))
+			data = checksum
+			checksum = ''
+		return checksum
+
+	return solve(272), solve(35651584)
+
+
 if __name__ == '__main__':
 	main(globals())
