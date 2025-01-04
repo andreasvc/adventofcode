@@ -4,11 +4,12 @@ import sys
 from heapq import heappop, heappush
 from functools import cache, cmp_to_key
 from math import log10
-from itertools import product, combinations
+from itertools import combinations
 from collections import Counter, deque
 from array import array
 import numpy as np
 from scipy.cluster.hierarchy import DisjointSet
+from numba import njit
 sys.path.append('..')
 from common import main
 
@@ -99,36 +100,38 @@ def day5(s):
 
 
 def day6(s):
-	grid = s.splitlines()
-	ymax, xmax = len(grid), len(grid[0])
-	x, y = max((line.find('^'), y) for y, line in enumerate(grid))
-	grid[y] = grid[y].replace('^', '.')
-	yd, xd = [-1, 0, 1, 0], [0, 1, 0, -1]
-
-	def explore(y, x, d, grid, path=None):
-		path = path or {(y, x, d): None}
+	def explore(y, x, d, grid):
+		path = {(y, x, d): None}
 		while 0 <= y + yd[d] < ymax and 0 <= x + xd[d] < xmax:
 			if grid[y + yd[d]][x + xd[d]] == '.':
 				y += yd[d]
 				x += xd[d]
 			else:
 				d = (d + 1) % 4
-			if (y, x, d) in path:
-				return -1
+				if (y, x, d) in path:
+					return -1
 			path[y, x, d] = None
 		return path
 
 	def newgrid(y, x):
-		return [['#' if xx == x and yy == y else c
-				for xx, c in enumerate(line)]
-				for yy, line in enumerate(grid)]
+		return grid[:y] + [grid[y][:x] + '#' + grid[y][x + 1:]] + grid[y + 1:]
+
+	grid = s.splitlines()
+	ymax, xmax = len(grid), len(grid[0])
+	x, y = max((line.find('^'), y) for y, line in enumerate(grid))
+	grid[y] = grid[y].replace('^', '.')
+	yd, xd = [-1, 0, 1, 0], [0, 1, 0, -1]
 
 	path = list(explore(y, x, 0, grid))
-	result1 = len({(y, x) for y, x, _ in path})
+	path1 = [(y, x) for y, x, _ in path]
+	# index from coord to idx when it was first seen
+	# reverse to keep first rather than last instance
+	path1d = {c: n for n, c in list(enumerate(path1))[::-1]}
+	result1 = len(path1d)
 	result2 = len({(y2, x2)
-			for (n, (y1, x1, d1)), (y2, x2, _) in zip(enumerate(path), path[1:])
-			if not any(y3 == y2 and x3 == x2 for y3, x3, _ in path[:n + 1])
-			and explore(y1, x1, d1, newgrid(y2, x2), dict.fromkeys(path[:n + 1])) == -1})
+			for (n, (y1, x1, d1)), (y2, x2) in zip(enumerate(path), path1[1:])
+			if path1d[y2, x2] > n
+			and explore(y1, x1, d1, newgrid(y2, x2)) == -1})
 	return result1, result2
 
 
@@ -454,29 +457,24 @@ def day16(s):
 	grid = s.splitlines()
 	start = max((line.find('S'), y) for y, line in enumerate(grid))
 	end = max((line.find('E'), y) for y, line in enumerate(grid))
-	# agenda = [(end[0] + end[1], 0) + start + (1, 0, (start, ))]
-	agenda = [(0, 0) + start + (1, 0, (start, ))]
-	seen = {start + (1, 0): 0}  # end[0] + end[1]}
-	bestcost = 99999999999
-	onbestpath = set()
+	agenda = [(0, ) + start + (1, 0, [start])]
+	seen = {start + (1, 0): 0}
 	while agenda:
-		est, cost, x, y, dx, dy, path = heappop(agenda)
+		cost, x, y, dx, dy, path = heappop(agenda)
 		if (x, y) == end:
-			if cost > bestcost:
-				return bestcost, len(onbestpath)
-			if cost < bestcost:
-				bestcost = cost
-			onbestpath.update(path)
-		if seen[x, y, dx, dy] < est:
-			continue
-		for ddx, ddy, dcost in [(dx, dy, 1), (dy, dx, 1001), (-dy, -dx, 1001)]:
-			ny, nx, ncost = y + ddy, x + ddx, cost + dcost
-			if grid[ny][nx] != '#':
-				est = ncost  # + abs(end[0] - nx) + abs(end[1] - ny)
-				if est <= seen.get((nx, ny, ddx, ddy), 99999999):
-					heappush(agenda, (est, ncost, nx, ny, ddx, ddy,
-							path + ((nx, ny), )))
-					seen[nx, ny, ddx, ddy] = est
+			bestcost = cost
+			onbestpath = {c for cost, x, y, _, _, path
+					in agenda if (x, y) == end and cost == bestcost
+					for c in path}
+			return bestcost, len(onbestpath)
+		for ddx, ddy, ncost in [(dx, dy, cost + 1), (dy, dx, cost + 1001),
+				(-dy, -dx, cost + 1001)]:
+			ny, nx = y + ddy, x + ddx
+			if grid[ny][nx] != '#' and ncost <= seen.get(
+					(nx, ny, ddx, ddy), 99999999):
+				heappush(agenda, (ncost, nx, ny, ddx, ddy,
+						path + [(nx, ny)]))
+				seen[nx, ny, ddx, ddy] = ncost
 
 
 def day17(s):
@@ -595,13 +593,14 @@ def day20(s):
 			x, y = agenda.popleft()
 			if (x, y) == end:
 				return seen
+			cost = seen[x, y]
 			for dx, dy in dirs:
-				nx, ny, ncost = x + dx, y + dy, seen[x, y] + 1
-				if 0 <= nx < xmax and 0 <= ny < ymax:
-					if grid[ny][nx] != '#':
-						if ncost < seen.get((nx, ny), 99999999):
-							agenda.append((nx, ny))
-							seen[nx, ny] = ncost
+				nx, ny = x + dx, y + dy
+				if (0 <= nx < xmax and 0 <= ny < ymax
+						and grid[ny][nx] != '#'
+						and cost + 1 < seen.get((nx, ny), 99999999)):
+					agenda.append((nx, ny))
+					seen[nx, ny] = cost + 1
 
 	grid = s.splitlines()
 	xmax, ymax = len(grid[0]), len(grid)
@@ -610,17 +609,15 @@ def day20(s):
 	dirs = [(-1, 0), (0, 1), (1, 0), (0, -1)]
 	dist = find(start, end)
 	result1 = result2 = 0
-	for x1, y1 in dist:
+	for (x1, y1), distx1y1 in dist.items():
 		for x2 in range(x1 - 20, x1 + 21):
-			yd = 20 - abs(x2 - x1)
+			absx2x1 = abs(x2 - x1)
+			yd = 20 - absx2x1
 			for y2 in range(y1 - yd, y1 + yd + 1):
-				d = abs(x2 - x1) + abs(y2 - y1)
-				if 2 <= d <= 20 and (x2, y2) in dist:
-					diff = dist[x1, y1] - dist[x2, y2] - d
-					if diff >= 100:
-						if d == 2:
-							result1 += 1
-						result2 += 1
+				d = absx2x1 + abs(y2 - y1)
+				if distx1y1 - dist.get((x2, y2), 99999) - d >= 100:
+					result1 += d == 2
+					result2 += 1
 	return result1, result2
 
 
@@ -694,31 +691,33 @@ def day21(s):
 
 
 def day22(s):
-	result1 = 0
-	price = Counter()
-	for line in s.splitlines():
-		num = prev = int(line)
-		changes = []
-		seen = set()
-		for n in range(2000):
-			num ^= num << 6  # * 64
-			num &= 16777216 - 1  # num %= 16777216
-			num ^= num >> 5  # // 32
-			num &= 16777216 - 1  # num %= 16777216
-			num ^= num << 11 # * 2048
-			num &= 16777216 - 1  # num %= 16777216
-			num10 = num % 10
-			changes.append(num10 - prev)
-			prev = num10
-			if n >= 4:
-				seq = tuple(changes[-4:])
-				if seq not in seen:
-					seen.add(seq)
-					if num10:
-						price[seq] += num10
-		result1 += num
-	result2 = price.most_common()[0][1]
-	return result1, result2
+	@njit
+	def solve(secrets):
+		result1 = 0
+		seqmask = (1 << 20) - 1
+		prices = np.zeros(seqmask, dtype=np.int16)
+		for num in secrets:
+			seen = np.zeros(seqmask // 64, dtype=np.uint64)
+			prev = num
+			seq = 0
+			for n in range(2000):
+				num ^= (num << 6) & 16777215
+				num ^= (num >> 5)
+				num ^= (num << 11) & 16777215
+				price = num % 10
+				seq = ((seq << 5) & seqmask) | price - prev + 9
+				prev = price
+				idx = seq >> 6
+				msk = 1 << (seq & 63)
+				if n >= 4 and not seen[idx] & msk:
+					seen[idx] |= msk
+					prices[seq] += price
+			result1 += num
+		result2 = max(prices)
+		return result1, result2
+
+	secrets = np.array([int(line) for line in s.splitlines()])
+	return solve(secrets)
 
 
 def day23(s):
