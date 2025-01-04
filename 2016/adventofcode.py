@@ -5,7 +5,7 @@ import sys
 import itertools
 # from functools import reduce
 from collections import Counter, defaultdict
-# from heapq import heappush, heappop
+from heapq import heappush, heappop
 # import numpy as np
 # from numba import njit
 sys.path.append('..')
@@ -358,6 +358,156 @@ def day11b(s):
 	lines[0] += ' elerium generator elerium-compatible microchip'
 	lines[0] += ' dilithium generator dilithium-compatible microchip'
 	return day11a('\n'.join(lines))
+
+
+def day12a(s):
+	reg = dict.fromkeys('abcd', 0)
+	return day12(s, reg)
+
+
+def day12b(s):
+	reg = dict.fromkeys('abcd', 0)
+	reg['c'] = 1
+	return day12(s, reg)
+
+
+def day12(s, reg):
+	def decode(a):
+		return int(a) if a.isdigit() else reg[a]
+
+	pc = 0
+	lines = [line.split() for line in s.splitlines()]
+	while pc < len(lines):
+		if lines[pc][0] == 'cpy':
+			reg[lines[pc][2]] = decode(lines[pc][1])
+		elif lines[pc][0] == 'inc':
+			reg[lines[pc][1]] += 1
+		elif lines[pc][0] == 'dec':
+			reg[lines[pc][1]] -= 1
+		elif lines[pc][0] == 'jnz':
+			if decode(lines[pc][1]) != 0:
+				pc += int(lines[pc][2])
+				continue
+		else:
+			raise ValueError(lines[pc])
+		pc += 1
+	return reg['a']
+
+
+def day13a(s):
+	def heur(steps, x, y):
+		return abs(goalx - x) + abs(goaly - y), steps, x, y
+
+	num, goalx, goaly = [int(a) for a in s.split()]
+	grid = {}  # np.zeros((2 * goalx, 2 * goaly))
+	for x in range(2 * goalx):
+		for y in range(2 * goaly):
+			grid[x, y] = 0
+			val = x * x + 3 * x + 2 * x * y + + y + y * y
+			if bin(val + num).count('1') & 1:
+				grid[x, y] = 1
+	agenda = [(goalx + goaly, 0, 1, 1)]
+	while agenda:
+		_, steps, x, y = heappop(agenda)
+		grid[x, y] = 1  # mark as visited to prevent cycles
+		if x == goalx and y == goaly:
+			break
+		if grid.get((x + 1, y), 0) == 0:
+			heappush(agenda, heur(steps + 1, x + 1, y))
+		if grid.get((x - 1, y), 0) == 0 and x > 0:
+			heappush(agenda, heur(steps + 1, x - 1, y))
+		if grid.get((x, y + 1), 0) == 0:
+			heappush(agenda, heur(steps + 1, x, y + 1))
+		if grid.get((x, y - 1), 0) == 0 and y > 0:
+			heappush(agenda, heur(steps + 1, x, y - 1))
+	return steps
+
+
+def day13b(s):
+	def heur(steps, x, y):
+		return steps, x, y
+
+	num, goalx, goaly = [int(a) for a in s.split()]
+	grid = {}  # np.zeros((2 * goalx, 2 * goaly))
+	for x in range(2 * goalx):
+		for y in range(2 * goaly):
+			grid[x, y] = 0
+			val = x * x + 3 * x + 2 * x * y + + y + y * y
+			if bin(val + num).count('1') & 1:
+				grid[x, y] = 1
+	agenda = [(0, 1, 1)]
+	while agenda:
+		steps, x, y = heappop(agenda)
+		if steps > 50:
+			break
+		grid[x, y] = 2  # mark as visited to prevent cycles
+		if grid.get((x + 1, y), 0) == 0:
+			heappush(agenda, heur(steps + 1, x + 1, y))
+		if grid.get((x - 1, y), 0) == 0 and x > 0:
+			heappush(agenda, heur(steps + 1, x - 1, y))
+		if grid.get((x, y + 1), 0) == 0:
+			heappush(agenda, heur(steps + 1, x, y + 1))
+		if grid.get((x, y - 1), 0) == 0 and y > 0:
+			heappush(agenda, heur(steps + 1, x, y - 1))
+	return sum(a == 2 for a in grid.values())
+
+
+def day14a(s):
+	return day14(s, iterations=0)
+
+
+def day14b(s):
+	return day14(s, iterations=2016)
+
+
+def day14(s, iterations=0):
+	def get(n):
+		if n in cache:
+			x = cache[n]
+		else:
+			newhash = hasher.copy()
+			newhash.update(b'%d' % n)
+			x = newhash.hexdigest()
+			for _ in range(iterations):
+				x = md5(x.encode('ascii')).hexdigest()
+			cache[n] = x
+		return x
+
+	try:
+		from _md5 import md5  # https://stackoverflow.com/a/60263898/338811
+	except ImportError:
+		from hashlib import md5
+	hasher = md5()
+	hasher.update(s.encode('ascii'))
+	triple = re.compile(r'(.)\1\1')
+	cache = {}
+	n = 0
+	foundkeys = 0
+	while True:
+		match = triple.search(get(n))
+		if match is not None:
+			quintuple = re.compile(r'%s' % (5 * match.group(1)))
+			for m in range(n + 1, n + 1001):
+				if quintuple.search(get(m)) is not None:
+					foundkeys += 1
+					print(foundkeys)
+					if foundkeys >= 64:
+						return n
+					break
+		n += 1
+
+
+def day15(s):
+	def solve(discs):
+		for n in range(
+				discs[0][1] - discs[0][3] - discs[0][0],
+				1000000000000,
+				discs[0][1]):
+			if all((n + d + pos) % ppos == 0 for d, ppos, _, pos in discs):
+				return n
+
+	discs = [list(map(int, re.findall(r'\d+', a))) for a in s.splitlines()]
+	return solve(discs), solve(discs + [[7, 11, 0, 0]])
 
 
 if __name__ == '__main__':
