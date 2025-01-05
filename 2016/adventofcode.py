@@ -623,5 +623,77 @@ def day20(s):
 	return allowed[0], len(allowed)
 
 
+def day21(s):
+	def scramble(s, reverse=False, inp=None):
+		if inp:
+			data = inp
+		elif reverse:
+			data = 'decab' if len(s.splitlines()) == 8 else 'fbgdceah'
+		else:
+			data = 'abcde' if len(s.splitlines()) == 8 else 'abcdefgh'
+		for line in s.splitlines()[::-1] if reverse else s.splitlines():
+			tokens = line.split()
+			if line.startswith('swap position'):
+				x, y = int(tokens[2]), int(tokens[5])
+				data = list(data)
+				data[x], data[y] = data[y], data[x]
+				data = ''.join(data)
+			elif line.startswith('swap letter'):
+				x, y = data.index(tokens[2]), data.index(tokens[5])
+				data = list(data)
+				data[x], data[y] = data[y], data[x]
+				data = ''.join(data)
+			elif line.startswith('rotate left'):
+				x = int(tokens[2])
+				if reverse:
+					data = data[-x:] + data[:-x]
+				else:
+					data = data[x:] + data[:x]
+			elif line.startswith('rotate right'):
+				x = int(tokens[2])
+				if reverse:
+					data = data[x:] + data[:x]
+				else:
+					data = data[-x:] + data[:-x]
+			elif line.startswith('rotate based'):
+				if reverse:
+					let = tokens[6]
+					for x in range(len(data) + 3):
+						idx = (data[x:] + data[:x]).index(let)
+						if (x - 1 - (idx >= 4)) % len(data) == idx:
+							break
+					else:
+						raise ValueError
+					data = data[x:] + data[:x]
+				else:
+					x = data.index(tokens[6])
+					if x >= 4:
+						x += 1
+					x += 1
+					x %= len(data)
+					data = data[-x:] + data[:-x]
+			elif line.startswith('reverse'):
+				x, y = int(tokens[2]), int(tokens[4])
+				data = data[:x] + data[x:y + 1][::-1] + data[y + 1:]
+			elif line.startswith('move'):
+				if reverse:
+					x, y = int(tokens[2]), int(tokens[5])
+					c = data[y]
+					data = data[:y] + data[y + 1:]
+					data = data[:x] + c + data[x:]
+					assert data[x] == c
+				else:
+					x, y = int(tokens[2]), int(tokens[5])
+					c = data[x]
+					data = data[:x] + data[x + 1:]
+					data = data[:y] + c + data[y:]
+					assert data[y] == c
+			else:
+				raise ValueError
+		return data
+
+	return scramble(s), scramble(s, reverse=True)
+
+
 if __name__ == '__main__':
 	main(globals())
