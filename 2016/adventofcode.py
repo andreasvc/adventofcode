@@ -570,5 +570,58 @@ def day18(s):
 	return result1, result2
 
 
+def day19a(s):
+	size = int(s)
+	elves = [1] * size
+	n = 0
+	while True:
+		if elves[n]:
+			nn = (n + 1) % size
+			while not elves[nn]:
+				nn = (nn + 1) % size
+			elves[n] += elves[nn]
+			if elves[n] == size:
+				return n + 1
+			elves[nn] = 0
+			n = (nn + 1) % size
+		else:
+			n = (n + 1) % size
+
+
+def day19b(s):
+	# FIXME: very slow
+	size = int(s)
+	presents = {n: 1 for n in range(1, size + 1)}
+	elves = list(range(1, size + 1))
+	n = 0
+	while True:
+		nn = (n + len(elves) // 2) % len(elves)
+		# print(elves[n], elves[nn], elves, presents)
+		presents[elves[n]] += presents.pop(elves[nn])
+		if presents[elves[n]] == size:
+			return elves[n]
+		del elves[nn]
+		if nn > n:
+			n = (n + 1) % len(elves)
+		else:
+			n = n % len(elves)
+
+
+def day20(s):
+	ranges = sorted(tuple(map(int, re.findall(r'\d+', line)))
+			for line in s.splitlines())
+	n = 0
+	allowed = []
+	while True:
+		for a, b in ranges:
+			if a <= n <= b:
+				n = b + 1
+		if n > 4294967295:
+			break
+		allowed.append(n)
+		n += 1
+	return allowed[0], len(allowed)
+
+
 if __name__ == '__main__':
 	main(globals())
