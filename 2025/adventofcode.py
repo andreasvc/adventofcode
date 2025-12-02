@@ -1,4 +1,5 @@
 """Advent of Code 2024. http://adventofcode.com/2024 """
+import re
 import sys
 sys.path.append('..')
 from common import main
@@ -21,6 +22,21 @@ def day1(s):
 		if cond or cur == 0:
 			result2 += 1
 		result2 += steps // 100
+	return result1, result2
+
+
+def day2(s):
+	result1 = result2 = 0
+	repetition = re.compile(r'([0-9]+)\1+$')
+	for rng in s.split(','):
+		a, b = map(int, rng.split('-'))
+		for n in range(a, b + 1):
+			ns = str(n)
+			match = repetition.match(ns)
+			if match:
+				result2 += n
+				if ns.count(match.group(1)) == 2:
+					result1 += n
 	return result1, result2
 
 
