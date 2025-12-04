@@ -40,5 +40,77 @@ def day2(s):
 	return result1, result2
 
 
+def day3(s):
+	result1 = result2 = 0
+	for bank in s.splitlines():
+		result1 += max(int(a + b)
+				for n, a in enumerate(bank)
+					for b in bank[n + 1:])
+		jolt = ''
+		for n in range(12):
+			digit = max(bank[:len(bank) - (12 - n - 1)])
+			bank = bank[bank.index(digit) + 1:]
+			jolt += digit
+		result2 += int(jolt)
+	return result1, result2
+
+
+def day4(s):
+	rolls = {(y, x)
+			for y, line in enumerate(s.splitlines())
+			for x, c in enumerate(line)
+			if c == '@'}
+	dirs = ((-1, 0), (1, 0), (0, -1), (0, 1),
+			(-1, -1), (1, 1), (1, -1), (-1, 1))
+	result1 = sum(
+			sum((y + dy, x + dx) in rolls
+				for dy, dx in dirs)
+			< 4
+			for y, x in rolls)
+	result2 = 0
+	while True:
+		remove = {
+			(y, x) for y, x in rolls
+			if sum((y + dy, x + dx) in rolls
+				for dy, dx in dirs) < 4}
+		if not remove:
+			break
+		rolls -= remove
+		result2 += len(remove)
+	return result1, result2
+
+
+def day5(s):
+	...
+
+
+def day6(s):
+	...
+
+
+def day7(s):
+	...
+
+
+def day8(s):
+	...
+
+
+def day9(s):
+	...
+
+
+def day10(s):
+	...
+
+
+def day11(s):
+	...
+
+
+def day12(s):
+	...
+
+
 if __name__ == '__main__':
 	main(globals())
