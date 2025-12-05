@@ -1,6 +1,7 @@
 """Advent of Code 2024. http://adventofcode.com/2024 """
 import re
 import sys
+import itertools
 sys.path.append('..')
 from common import main
 
@@ -81,7 +82,22 @@ def day4(s):
 
 
 def day5(s):
-	...
+	ranges, available = s.split('\n\n')
+	ranges = sorted((int(rng.split('-')[0]), int(rng.split('-')[1]) + 1)
+			for rng in ranges.splitlines())
+	available = [int(n) for n in available.splitlines()]
+	result1 = sum(any(a <= n < b for a, b in ranges) for n in available)
+	result2 = 0
+	a, b = 0, 0
+	while ranges:
+		aa, bb = ranges.pop(0)
+		if aa > b:
+			result2 += b - a
+			a, b = aa, bb
+		elif bb > b:
+			b = bb
+	result2 += b - a
+	return result1, result2
 
 
 def day6(s):
