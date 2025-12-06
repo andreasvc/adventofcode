@@ -1,7 +1,7 @@
 """Advent of Code 2024. http://adventofcode.com/2024 """
 import re
 import sys
-import itertools
+from math import prod
 sys.path.append('..')
 from common import main
 
@@ -89,8 +89,7 @@ def day5(s):
 	result1 = sum(any(a <= n < b for a, b in ranges) for n in available)
 	result2 = 0
 	a, b = 0, 0
-	while ranges:
-		aa, bb = ranges.pop(0)
+	for aa, bb in ranges:
 		if aa > b:
 			result2 += b - a
 			a, b = aa, bb
@@ -101,7 +100,27 @@ def day5(s):
 
 
 def day6(s):
-	...
+	lines = s.splitlines()
+	nums = [[int(a) for a in line.split()]
+			for line in lines[:-1]]
+	nums2 = [[]]
+	for n, _ in enumerate(s.splitlines()[0]):
+		if all(line[n] == ' ' for line in lines[:-1]):
+			nums2.append([])
+		else:
+			nums2[-1].append(int(''.join(line[n] for line in lines[:-1])))
+	ops = lines[-1].split()
+	result1 = result2 = 0
+	for n, op in enumerate(ops):
+		if op == '+':
+			result1 += sum(a[n] for a in nums)
+			result2 += sum(a for a in nums2[n])
+		elif op == '*':
+			result1 += prod(a[n] for a in nums)
+			result2 += prod(a for a in nums2[n])
+		else:
+			raise NotImplementedError(op)
+	return result1, result2
 
 
 def day7(s):
