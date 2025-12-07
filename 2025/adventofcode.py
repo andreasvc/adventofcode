@@ -2,6 +2,7 @@
 import re
 import sys
 from math import prod
+from functools import cache
 sys.path.append('..')
 from common import main
 
@@ -114,17 +115,39 @@ def day6(s):
 	for n, op in enumerate(ops):
 		if op == '+':
 			result1 += sum(a[n] for a in nums)
-			result2 += sum(a for a in nums2[n])
+			result2 += sum(nums2[n])
 		elif op == '*':
 			result1 += prod(a[n] for a in nums)
-			result2 += prod(a for a in nums2[n])
+			result2 += prod(nums2[n])
 		else:
 			raise NotImplementedError(op)
 	return result1, result2
 
 
 def day7(s):
-	...
+	def numsplitters(y, x):
+		if y < len(grid):
+			if grid[y][x] in '.S':
+				grid[y][x] = '|'
+				return numsplitters(y + 1, x)
+			elif grid[y][x] == '^':
+				return 1 + numsplitters(y, x - 1) + numsplitters(y, x + 1)
+		return 0
+
+	@cache
+	def numpaths(y, x):
+		if y < len(grid):
+			if grid[y][x] in '.S':
+				return numpaths(y + 1, x)
+			elif grid[y][x] == '^':
+				return numpaths(y, x - 1) + numpaths(y, x + 1)
+		return 1
+
+	grid = [list(line) for line in s.splitlines()]
+	# numpaths() first because numsplitters() modifies the grid
+	result2 = numpaths(0, grid[0].index('S'))
+	result1 = numsplitters(0, grid[0].index('S'))
+	return result1, result2
 
 
 def day8(s):
