@@ -1,7 +1,8 @@
 """Advent of Code 2024. http://adventofcode.com/2024 """
 import re
 import sys
-from math import prod
+import math
+import itertools
 from functools import cache
 sys.path.append('..')
 from common import main
@@ -117,8 +118,8 @@ def day6(s):
 			result1 += sum(a[n] for a in nums)
 			result2 += sum(nums2[n])
 		elif op == '*':
-			result1 += prod(a[n] for a in nums)
-			result2 += prod(nums2[n])
+			result1 += math.prod(a[n] for a in nums)
+			result2 += math.prod(nums2[n])
 		else:
 			raise NotImplementedError(op)
 	return result1, result2
@@ -127,8 +128,8 @@ def day6(s):
 def day7(s):
 	def numsplitters(y, x):
 		if y < len(grid):
-			if grid[y][x] in '.S':
-				grid[y][x] = '|'
+			if grid[y][x] in '.S' and (y, x) not in seen:
+				seen.add((y, x))
 				return numsplitters(y + 1, x)
 			elif grid[y][x] == '^':
 				return 1 + numsplitters(y, x - 1) + numsplitters(y, x + 1)
@@ -143,15 +144,30 @@ def day7(s):
 				return numpaths(y, x - 1) + numpaths(y, x + 1)
 		return 1
 
-	grid = [list(line) for line in s.splitlines()]
-	# numpaths() first because numsplitters() modifies the grid
-	result2 = numpaths(0, grid[0].index('S'))
+	grid = s.splitlines()
+	seen = set()
 	result1 = numsplitters(0, grid[0].index('S'))
+	result2 = numpaths(0, grid[0].index('S'))
 	return result1, result2
 
 
 def day8(s):
-	...
+	boxes = [tuple(int(a) for a in line.split(',')) for line in s.splitlines()]
+	numconnections = 10 if len(boxes) == 20 else 1000
+	dists = sorted(itertools.combinations(range(len(boxes)), 2),
+			key=lambda x: math.dist(boxes[x[0]], boxes[x[1]]))
+	connections = {n: {n} for n, _coord in enumerate(boxes)}
+	for n, (coord1, coord2) in enumerate(dists, 1):
+		connections[coord1].update(connections[coord2])
+		for a in connections[coord2]:
+			connections[a] = connections[coord1]
+		if n == numconnections:
+			circuits = {id(a): a for a in connections.values()}.values()
+			result1 = math.prod(sorted(len(a) for a in circuits)[-3:])
+		if len(connections[coord1]) == len(boxes):
+			result2 = boxes[coord1][0] * boxes[coord2][0]
+			break
+	return result1, result2
 
 
 def day9(s):
